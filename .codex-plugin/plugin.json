@@ -1,0 +1,50 @@
+{
+  "name": "unity",
+  "version": "0.1.0-beta",
+  "description": "Unity's official plugin for Codex, with curated skills for game development, monetization, and performance optimization.",
+  "author": {
+    "name": "Unity Technologies",
+    "url": "https://unity.com"
+  },
+  "homepage": "https://unity.com",
+  "license": "LicenseRef-Unity-Companion-License",
+  "keywords": [
+    "unity",
+    "gamedev",
+    "game-development",
+    "ui-toolkit",
+    "ugui",
+    "2d",
+    "tilemap",
+    "in-app-purchases",
+    "monetization",
+    "localization",
+    "multiplayer",
+    "shader-graph"
+  ],
+  "skills": "./skills/",
+  "interface": {
+    "displayName": "Unity",
+    "shortDescription": "Build, monetize, and optimize games with Unity",
+    "longDescription": "Use Unity curated skills to develop your game, connect monetization, and optimize performance across platforms.",
+    "developerName": "Unity Technologies",
+    "category": "Developer Tools",
+    "capabilities": [
+      "Interactive",
+      "Read",
+      "Write"
+    ],
+    "websiteURL": "https://unity.com",
+    "privacyPolicyURL": "https://unity.com/legal/privacy-policy",
+    "termsOfServiceURL": "https://unity.com/legal/terms-of-service",
+    "logo": "./assets/unity.svg",
+    "composerIcon": "./assets/unity-small.svg",
+    "brandColor": "#000000",
+    "defaultPrompt": [
+      "Set up a tilemap level with rule tiles for my 2D Unity game.",
+      "Help me implement in-app purchases and set up ad mediation with LevelPlay.",
+      "Set up multiplayer lobbies and networking for my Unity game."
+    ],
+    "screenshots": []
+  }
+}

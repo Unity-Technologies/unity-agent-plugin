@@ -1,0 +1,20 @@
+{
+  "name": "unity-agent-plugin",
+  "interface": {
+    "displayName": "Unity"
+  },
+  "plugins": [
+    {
+      "name": "unity",
+      "source": {
+        "source": "local",
+        "path": "."
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Developer Tools"
+    }
+  ]
+}
