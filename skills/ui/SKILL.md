@@ -88,7 +88,7 @@ Route all types to the appropriate specialized skill based on the UI system.
 - **Understands**, **edits**, and **generates** EditorWindow, inspectors, PropertyDrawers built with OnGUI
 - Not for runtime game UI — for new editor tools, use UI Toolkit unless the project already uses IMGUI exclusively
 
-### Figma design import — not available in this plugin
+### Figma design import — not available here
 
 Importing a Figma design requires Unity's Figma integration service, which only exists
 inside Unity AI Assistant. There is no client-side equivalent, so do not promise it.
