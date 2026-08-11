@@ -29,25 +29,28 @@
 
 1. Package Installation Check
 First of all **verify that the com.unity.inputsystem package is installed**
-**Install if Missing:** If InputSystem is not installed, use the `RunCommand` tool with the following C# code to install it:
+**Install if Missing:** add the package to the project manifest — `Packages/manifest.json`,
+under `dependencies`:
+
+```json
+"com.unity.inputsystem": "<current 1.x version>"
+```
+
+Don't invent the version string. Read the current one from the Unity registry —
+`https://packages.unity.com/com.unity.inputsystem` lists every published version — or copy the version an
+adjacent Unity package in this manifest already uses. A version that doesn't exist makes
+Unity fail resolution **silently**, so a wrong guess looks like nothing happened.
+
+Unity resolves the new dependency the next time the Editor regains focus. This needs no
+Editor connection, which is why it's the default route here.
+
+If you do have a live Editor to run C# in, the equivalent is:
+
 ```csharp
-using UnityEngine;
-using UnityEditor;
 using UnityEditor.PackageManager;
 
-namespace Unity.AI.Assistant.Agent.Dynamic.Extension.Editor
-{
-    internal class CommandScript : IRunCommand
-    {
-        public string Title => "Install Input System package";
-        public string Description => "This command will request the Unity Package Manager to install the Input System package.";
-        public void Execute(ExecutionResult result)
-        {
-            var request = Client.Add("com.unity.inputsystem");
-            result.Log("Requested installation of com.unity.inputsystem. You can monitor progress in the Package Manager window.");
-        }
-    }
-}
+var request = Client.Add("com.unity.inputsystem");
+UnityEngine.Debug.Log("Requested com.unity.inputsystem. Progress shows in the Package Manager window.");
 ```
 **Proceed:** Only continue to the next steps once InputSystem is confirmed to be installed.
 
@@ -65,61 +68,63 @@ Changing the Active Input Handling setting requires an Editor restart.
 
 **DO NOT** search or grep `ProjectSettings/ProjectSettings.asset`, `ProjectSettings/EditorBuildSettings.asset`, or any other project settings files to find the project-wide actions asset. The reference is stored internally via `EditorBuildSettings` config objects and is **not human-readable** in project files. Attempting to grep these files will fail and waste time.
 
-**The ONLY correct way** to check and manage project-wide actions is via `RunCommand` using the C# API:
+**The ONLY correct way** to check and manage project-wide actions is the C# API below, run in a live Editor:
 
 **To check if project-wide actions are assigned and inspect their contents:**
+
+Two routes. The file route needs no Editor: `.inputactions` assets are JSON on disk, so
+glob for `*.inputactions` and read one directly to see its action maps, actions and
+bindings. What a file cannot tell you is which asset is *assigned* project-wide — that
+lives in project settings.
+
+With a live Editor to run C# in:
+
 ```csharp
 using UnityEngine;
 using UnityEngine.InputSystem;
 
-namespace Unity.AI.Assistant.Agent.Dynamic.Extension.Editor
+var actions = InputSystem.actions;
+if (actions == null)
 {
-    internal class CommandScript : IRunCommand
+    Debug.Log("No project-wide Input Actions asset is currently assigned.");
+    Debug.Log("To create one: Edit > Project Settings > Input System Package > Create a new project-wide Action Asset");
+
+    // Also check if any .inputactions assets exist in the project that could be assigned
+    var guids = UnityEditor.AssetDatabase.FindAssets("t:InputActionAsset");
+    if (guids.Length > 0)
     {
-        public string Title => "Check Project-Wide Input Actions";
-        public string Description => "Checks whether a project-wide Input Actions asset is assigned and reports its contents.";
-        public void Execute(ExecutionResult result)
+        Debug.Log($"Found {guids.Length} InputActionAsset(s) in the project that could be assigned:");
+        foreach (var guid in guids)
         {
-            var actions = InputSystem.actions;
-            if (actions == null)
-            {
-                result.Log("No project-wide Input Actions asset is currently assigned.");
-                result.Log("To create one: Edit > Project Settings > Input System Package > Create a new project-wide Action Asset");
-
-                // Also check if any .inputactions assets exist in the project that could be assigned
-                var guids = UnityEditor.AssetDatabase.FindAssets("t:InputActionAsset");
-                if (guids.Length > 0)
-                {
-                    result.Log($"Found {guids.Length} InputActionAsset(s) in the project that could be assigned:");
-                    foreach (var guid in guids)
-                    {
-                        var assetPath = UnityEditor.AssetDatabase.GUIDToAssetPath(guid);
-                        result.Log($"  - {assetPath}");
-                    }
-                }
-                return;
-            }
-
-            var path = UnityEditor.AssetDatabase.GetAssetPath(actions);
-            result.Log($"Project-wide actions asset: {actions.name} ({path})");
-            result.Log($"Action Maps ({actions.actionMaps.Count}):");
-            foreach (var map in actions.actionMaps)
-            {
-                result.Log($"  - {map.name} ({map.actions.Count} actions)");
-                foreach (var action in map.actions)
-                {
-                    result.Log($"      {action.name} (Type: {action.type}, ExpectedControlType: {action.expectedControlType}, Bindings: {action.bindings.Count})");
-                }
-            }
-            result.Log($"Control Schemes ({actions.controlSchemes.Count}):");
-            foreach (var scheme in actions.controlSchemes)
-            {
-                result.Log($"  - {scheme.name}");
-            }
+            var assetPath = UnityEditor.AssetDatabase.GUIDToAssetPath(guid);
+            Debug.Log($"  - {assetPath}");
         }
     }
+    return "no project-wide actions assigned";
 }
+
+var path = UnityEditor.AssetDatabase.GetAssetPath(actions);
+var report = new System.Text.StringBuilder();
+report.AppendLine($"Project-wide actions asset: {actions.name} ({path})");
+report.AppendLine($"Action Maps ({actions.actionMaps.Count}):");
+foreach (var map in actions.actionMaps)
+{
+    report.AppendLine($"  - {map.name} ({map.actions.Count} actions)");
+    foreach (var action in map.actions)
+    {
+        report.AppendLine($"      {action.name} (Type: {action.type}, ExpectedControlType: {action.expectedControlType}, Bindings: {action.bindings.Count})");
+    }
+}
+report.AppendLine($"Control Schemes ({actions.controlSchemes.Count}):");
+foreach (var scheme in actions.controlSchemes)
+{
+    report.AppendLine($"  - {scheme.name}");
+}
+return report.ToString();
 ```
+
+Return the report rather than only logging it: logs land in the Editor console, while the
+returned value is what comes back to whoever ran the snippet.
 
 **To assign an existing .inputactions asset as project-wide:**
 ```csharp
@@ -127,7 +132,7 @@ var asset = UnityEditor.AssetDatabase.LoadAssetAtPath<InputActionAsset>("Assets/
 if (asset != null)
 {
     InputSystem.actions = asset;
-    result.Log($"Assigned '{asset.name}' as project-wide actions.");
+    UnityEngine.Debug.Log($"Assigned '{asset.name}' as project-wide actions.");
 }
 ```
 Note: `InputSystem.actions` can only be assigned in Edit mode (not Play mode) and the asset must be a persistent file on disk inside the Assets folder.
@@ -138,7 +143,7 @@ var guids = UnityEditor.AssetDatabase.FindAssets("t:InputActionAsset");
 foreach (var guid in guids)
 {
     var assetPath = UnityEditor.AssetDatabase.GUIDToAssetPath(guid);
-    result.Log($"Found: {assetPath}");
+    UnityEngine.Debug.Log($"Found: {assetPath}");
 }
 ```
 
@@ -272,8 +277,8 @@ public class MyPlayerScript : MonoBehaviour, IGameplayActions
 ```
 
 * **Option 3 - Project-Wide Actions** (Simplest)
-    - First check if a project-wide asset is assigned using the `RunCommand` script from Section 1 "Check Project-Wide Actions". Do NOT grep ProjectSettings files.
-    - If no project-wide asset is assigned, either create one via the `RunCommand` asset creation API (see API note 1) and assign it with `InputSystem.actions = asset;`, or instruct the user to go to Edit > Project Settings > Input System Package > Create a new project-wide Action Asset.
+    - First check if a project-wide asset is assigned using the script from Section 1 "Check Project-Wide Actions". Do NOT grep ProjectSettings files.
+    - If no project-wide asset is assigned, either create one via the asset creation API (see API note 1) and assign it with `InputSystem.actions = asset;`, or instruct the user to go to Edit > Project Settings > Input System Package > Create a new project-wide Action Asset.
     - Project-wide actions are enabled by default and ready to use.
     - Hook actions into gameplay using `InputSystem.actions.FindAction("Move")`. Cache references in `Start()`, do NOT call `FindAction` every frame.
 
@@ -349,7 +354,7 @@ Summarize what was created/changed:
 
 ## Important API notes
 
-0. Never edit inputaction asset Json directly, always use `RunCommand` with InputActionAsset API to edit the asset.
+0. Never edit inputaction asset Json directly, always use the InputActionAsset API, run in a live Editor, to edit the asset.
 
 1. CreateAsset() should not be used to create a file of type 'inputactions'.
 To create and save the '.inputaction' files use the next code example:
@@ -362,9 +367,9 @@ File.WriteAllText(path, json);
 
 2. Do NOT use 'Input.' class to handle inputs, it might result with exceptions at runtime. Use `InputSystem.actions.FindAction()` or action references instead.
 
-3. To add or remove input control scheme use `RunCommand` with `asset.AddControlScheme(InputControlScheme)`
+3. To add or remove input control scheme use `asset.AddControlScheme(InputControlScheme)`
 
-4. To add an action to a map use `RunCommand` with the next API example `public static InputAction AddAction(this InputActionMap map, string name, InputActionType type = InputActionType.Value, string binding = null, string interactions = null, string processors = null, string groups = null, string expectedControlLayout = null)`
+4. To add an action to a map use the API example that follows `public static InputAction AddAction(this InputActionMap map, string name, InputActionType type = InputActionType.Value, string binding = null, string interactions = null, string processors = null, string groups = null, string expectedControlLayout = null)`
 
 5. To add a composite binding use `AddCompositeBinding`:
 ```csharp
@@ -405,7 +410,7 @@ var action = asset.FindAction("Player/Jump");
 ```
 
 9. CRITICAL: Project-Wide Actions are NOT in ProjectSettings files.
-**NEVER** search, grep, or read `ProjectSettings/ProjectSettings.asset`, `ProjectSettings/EditorBuildSettings.asset`, or any other settings files to find input actions. The project-wide actions reference is stored internally via `EditorBuildSettings` config objects (binary format, not greppable). Always use `RunCommand` with `InputSystem.actions` to read the current project-wide actions, and `InputSystem.actions = asset` to assign them. See Section 1 "Check Project-Wide Actions" for the complete RunCommand script.
+**NEVER** search, grep, or read `ProjectSettings/ProjectSettings.asset`, `ProjectSettings/EditorBuildSettings.asset`, or any other settings files to find input actions. The project-wide actions reference is stored internally via `EditorBuildSettings` config objects (binary format, not greppable). Always use `InputSystem.actions` to read the current project-wide actions, and `InputSystem.actions = asset` to assign them. See Section 1 "Check Project-Wide Actions" for the complete script.
 
 10. CRITICAL: Correct Unity Input System API Names
 
@@ -912,8 +917,8 @@ The following exceptions exist and may be used regardless of Active Input Handli
 
 ### 10. Editing .inputactions JSON Directly
 **Problem:** Manual JSON edits can corrupt the asset, break binding IDs, or lose data.
-**Solution:** Always use the InputActionAsset API via `RunCommand` to modify assets programmatically.
+**Solution:** Always modify assets programmatically through the InputActionAsset API, run in a live Editor.
 
 ### 11. Searching ProjectSettings Files for Input Actions
 **Problem:** Grepping or reading `ProjectSettings/ProjectSettings.asset` or other settings files to find the project-wide actions asset. The reference is stored via `EditorBuildSettings` config objects in binary format and is not searchable in text files. This always fails and wastes multiple tool calls.
-**Solution:** Always use `RunCommand` with `InputSystem.actions` to check the current project-wide actions. See Section 1 "Check Project-Wide Actions" for the complete script.
+**Solution:** Always use `InputSystem.actions` to check the current project-wide actions. See Section 1 "Check Project-Wide Actions" for the complete script.
