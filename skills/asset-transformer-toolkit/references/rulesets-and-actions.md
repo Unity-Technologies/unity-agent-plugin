@@ -29,56 +29,45 @@ RuleSets support conversion to json. This will include information about the Act
 #### Step 1: Load RuleSet
 - Use AssetDatabase.LoadAssetAtPath to load the asset from memory.
 
-#### Step 2: Construct RunCommand
+#### Step 2: Construct the script
 - Read the API reference for the RuleSet class. Also read the API reference for the Rule and RuleBlock classes if required.
-- Construct a RunCommand using the APIs from those files. Here is an example of a RunCommand script that adds a Decimate Action to a RuleSet:
+- Construct a script using the APIs from those files, to run as C# in a live Editor. Here is an
+  example that adds a Decimate Action to a RuleSet:
 
 ```csharp
 using UnityEngine;
 using UnityEditor;
 using UnityEditor.PixyzPlugin4Unity.RuleEngine;
 
-internal class CommandScript : IRunCommand
-{
-    public void Execute(ExecutionResult result)
-    {
-        string path = "Assets/Rulesets/OptimizationRuleSet.asset";
-        RuleSet ruleSet = AssetDatabase.LoadAssetAtPath<RuleSet>(path);
-        
-        if (ruleSet == null)
-        {
-            result.LogError("RuleSet not found at {0}", path);
-            return;
-        }
+string path = "Assets/Rulesets/OptimizationRuleSet.asset";
+RuleSet ruleSet = AssetDatabase.LoadAssetAtPath<RuleSet>(path);
 
-        result.RegisterObjectModification(ruleSet);
+if (ruleSet == null)
+    throw new System.Exception($"RuleSet not found at {path}");
 
-        if (ruleSet.RulesCount == 0)
-        {
-            result.LogError("No rules found in RuleSet {0}", path);
-            return;
-        }
+Undo.RecordObject(ruleSet, "Add Decimate action");
 
-        Rule rule = ruleSet.GetRule(0);
-        
-        // Decimate Action ID is 277054868
-        RuleBlock decimateBlock = new RuleBlock(277054868);
-        
-        rule.AppendBlock(decimateBlock);
-        
-        EditorUtility.SetDirty(ruleSet);
-        AssetDatabase.SaveAssets();
+if (ruleSet.RulesCount == 0)
+    throw new System.Exception($"No rules found in RuleSet {path}");
 
-        result.Log("Added Decimate action to {0} (Rule index 0)", path);
-    }
-}
+Rule rule = ruleSet.GetRule(0);
+
+// Decimate Action ID is 277054868
+RuleBlock decimateBlock = new RuleBlock(277054868);
+
+rule.AppendBlock(decimateBlock);
+
+EditorUtility.SetDirty(ruleSet);
+AssetDatabase.SaveAssets();
+
+return $"Added Decimate action to {path} (Rule index 0)";
 ```
 
-A proper RunCommand for modifying a RuleSet has the following traits:
+A proper script for modifying a RuleSet has the following traits:
 - Does not use the ScriptableObject API (this bypasses necessary event triggers).
 
 #### Step 3: Validation
-- Execute the RunCommand script.
+- Run the script as C# in a live Editor.
 - Validate the RuleSet against the validation checklist.
 
 
@@ -144,7 +133,7 @@ All paths are exclusive.
 - If a preset is used, avoid changing values the preset changed unless requested otherwise.
 
 **Safety & Constraints**
-1. **One-Strike Rule**: If `ATTAssistantUtilities.SetActionParameter` throws an AITypeSecurityException, you MUST TERMINATE the task immediately. Do NOT use RunCommand, reflection, or any other method to bypass this. Follow the steps in Path A as your final actions.
+1. **One-Strike Rule**: If `ATTAssistantUtilities.SetActionParameter` throws an AITypeSecurityException, you MUST TERMINATE the task immediately. Do NOT use raw C# execution, reflection, or any other method to bypass this. Follow the steps in Path A as your final actions.
 
 
 ### Running RuleSets

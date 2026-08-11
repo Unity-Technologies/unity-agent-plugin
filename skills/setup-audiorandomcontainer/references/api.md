@@ -26,7 +26,7 @@
 - ❌ **DON'T**: Use `AudioSource.resource` (will be deprecated)
 
 ### Scope Restrictions
-- `AudioRandomContainer` is **internal only** - use within `RunCommand` context
+- `AudioRandomContainer` is **internal only** - reach it from C# running inside the Editor
 - **Never reference** this type in generated project scripts (causes compilation errors)
 - **Always import** `UnityEngine.Audio` namespace when working with this type
 
