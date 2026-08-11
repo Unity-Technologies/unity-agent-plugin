@@ -21,6 +21,19 @@ Before wiring any asset:
 
 3. **You need a live Editor that can run C#.** Wiring means assigning a serialized reference on a component and registering an undo step — an Editor operation with no safe file-editing equivalent. **The `unity-cli` skill owns getting you there**: installing the CLI, confirming a connected Editor, adding the project's `com.unity.pipeline` package, telling a genuinely absent Editor apart from one stuck in Safe Mode, and discovering the command catalog. You need `eval` in particular, not just a reachable Editor — its presence depends on the Pipeline package version, not on the CLI. If it's unavailable, say so and stop; **do not hand-edit scenes or prefabs to fake a wiring**.
 
+### Passing C# to `eval`
+
+`eval` compiles a **statement block, not a file**. Two consequences, both of which cause a
+compile error rather than a warning:
+
+- **No `using` directives.** The compiler reads `using UnityEngine;` as a resource-disposal
+  statement and rejects it (`CS0210`).
+- **Types must be fully qualified.** A bare `AssetDatabase` or `Volume` does not resolve
+  (`CS0246` / `CS0103`), and a bare `Object` is ambiguous with `object` (`CS0104`).
+
+Where a snippet below is written as a file — with usings, for readability, or because it is
+meant to be saved into the project — qualify the types before passing it to `eval`.
+
 ## Critical Goal
 
 **27% of follow-ups are debugging issues. This should be 0%.**
@@ -122,21 +135,19 @@ Use the explicit group + immediate-snapshot + flush sequence instead, which does
 the event loop:
 
 ```csharp
-using UnityEditor;
+UnityEditor.Undo.IncrementCurrentGroup();
+UnityEditor.Undo.SetCurrentGroupName("Wire sprite");     // the label the user will see
+var group = UnityEditor.Undo.GetCurrentGroup();
 
-Undo.IncrementCurrentGroup();
-Undo.SetCurrentGroupName("Wire sprite");          // this is the label the user will see
-var group = Undo.GetCurrentGroup();
-
-Undo.RegisterCompleteObjectUndo(target, "Wire sprite");   // immediate, not deferred
+UnityEditor.Undo.RegisterCompleteObjectUndo(target, "Wire sprite");   // immediate, not deferred
 // ... make the modification, and for a newly created object:
-// Undo.RegisterCreatedObjectUndo(newObject, "Wire sprite");
-EditorUtility.SetDirty(target);
+// UnityEditor.Undo.RegisterCreatedObjectUndo(newObject, "Wire sprite");
+UnityEditor.EditorUtility.SetDirty(target);
 
-Undo.FlushUndoRecordObjects();                    // force the snapshot out now
-Undo.CollapseUndoOperations(group);               // one entry, not several
+UnityEditor.Undo.FlushUndoRecordObjects();         // force the snapshot out now
+UnityEditor.Undo.CollapseUndoOperations(group);    // one entry, not several
 
-return Undo.GetCurrentGroupName();                // report the label back to confirm it landed
+return UnityEditor.Undo.GetCurrentGroupName();     // report the label back to confirm it landed
 ```
 
 **Verify it landed rather than assuming.** The returned group name tells you the group exists;
