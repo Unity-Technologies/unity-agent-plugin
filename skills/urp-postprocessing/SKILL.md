@@ -27,6 +27,19 @@ from `unity command --format json` rather than assuming one — the inline form 
 `eval_file` for running a snippet from a file. **Check the catalog before reaching for
 `eval_file`; it is frequently absent.** `unity command` defaults to a 30 second timeout.
 
+### Passing C# to `eval`
+
+`eval` compiles a **statement block, not a file**. Two consequences, both of which cause a
+compile error rather than a warning:
+
+- **No `using` directives.** The compiler reads `using UnityEngine;` as a resource-disposal
+  statement and rejects it (`CS0210`).
+- **Types must be fully qualified.** A bare `AssetDatabase` or `Volume` does not resolve
+  (`CS0246` / `CS0103`), and a bare `Object` is ambiguous with `object` (`CS0104`).
+
+Where a snippet below is written as a file — with usings, for readability, or because it is
+meant to be saved into the project — qualify the types before passing it to `eval`.
+
 ## 0. Pre-Flight Checks
 
 Before configuring any effect, **verify all checks**. Fix failures first.
@@ -42,10 +55,12 @@ Before configuring any effect, **verify all checks**. Fix failures first.
 Run this to verify the setup programmatically:
 
 ```csharp
+// `eval` compiles a statement block, not a file: no `using` directives are
+// allowed, so every type is fully qualified.
 var report = new System.Text.StringBuilder();
 
 // 1. Check URP is active — a hard stop, so throw: it fails the eval loudly
-var urpAsset = UniversalRenderPipeline.asset;
+var urpAsset = UnityEngine.Rendering.Universal.UniversalRenderPipeline.asset;
 if (urpAsset == null)
     throw new System.Exception("URP is not the active render pipeline.");
 
@@ -54,16 +69,16 @@ if (!urpAsset.supportsHDR)
     report.AppendLine("Warning: HDR is disabled on the URP Asset. Tonemapping won't work; Bloom requires threshold < 1.");
 
 // 3. Check camera post-processing
-var cam = Camera.main;
+var cam = UnityEngine.Camera.main;
 if (cam == null)
     throw new System.Exception("No Main Camera found.");
-if (!cam.TryGetComponent<UniversalAdditionalCameraData>(out var camData))
+if (!cam.TryGetComponent<UnityEngine.Rendering.Universal.UniversalAdditionalCameraData>(out var camData))
     throw new System.Exception("Missing UniversalAdditionalCameraData on camera. Is URP active?");
 if (!camData.renderPostProcessing)
     report.AppendLine("Warning: Post-processing is disabled on the camera. Enable via camData.renderPostProcessing = true.");
 
 // 4. Check volume layer mask
-var volumes = Object.FindObjectsByType<Volume>(FindObjectsSortMode.None);
+var volumes = UnityEngine.Object.FindObjectsByType<UnityEngine.Rendering.Volume>(UnityEngine.FindObjectsSortMode.None);
 foreach (var vol in volumes)
 {
     if (!vol.enabled) { report.AppendLine($"Warning: Volume '{vol.name}' is disabled."); continue; }
@@ -106,6 +121,9 @@ For code templates:
 ## 3. Anti-Hallucination Rules
 
 ### Required Usings
+
+These apply when you write a `.cs` file into the project. **A snippet passed to `eval` cannot
+carry them** — qualify the types instead (see "Passing C# to `eval`" above).
 
 ```csharp
 using UnityEngine.Rendering;           // Volume, VolumeProfile, VolumeComponent, VolumeParameter
