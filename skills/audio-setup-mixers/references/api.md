@@ -3,42 +3,50 @@
 All `AudioMixer`s in the editor are actually `AudioMixerController`s, that affords extra authoring APIs.
 Similarly, `AudioMixerGroup`s are `AudioMixerGroupController`s. 
 
-`AudioMixerController` and `AudioMixerGroupController` are **internal** to
-`UnityEditor.Audio`. Editor-side `eval` does reach them (measured), so use the APIs below
-directly. Only fall back to reflection if a compile error actually reports a visibility
-problem — the API shapes below still apply either way.
+`AudioMixerController` and `AudioMixerGroupController` are **internal** to `UnityEditor.Audio`,
+and that matters for how you reach them.
 
-All code should add these using namespaces:
+**Measured: naming these types directly in an `eval` snippet fails to compile** —
+`CS0122: 'AudioMixerController' is inaccessible due to its protection level`. Reflection does
+reach them:
 
 ```c#
-using UnityEditor.Audio;
-using UnityEngine.Audio;
+var mixerType = System.Type.GetType("UnityEditor.Audio.AudioMixerController, UnityEditor");
+var groupType = System.Type.GetType("UnityEditor.Audio.AudioMixerGroupController, UnityEditor");
 ```
+
+So treat the signatures below as the **API shapes**, not as code to paste: invoke them through
+reflection, or run the code as a compiled Editor script in the project rather than through
+`eval`. Don't paste a snippet that names the type and expect it to build.
+
+Types are otherwise fully qualified below, because `eval` rejects `using` directives. If you
+save any of this into a `.cs` file instead, add `using UnityEditor.Audio;` and
+`using UnityEngine.Audio;` and drop the qualification.
 
 ## Finding existing Audio Mixers
 ```c#
-using UnityEditor;
-using System.Linq;
-
-string[] guids = AssetDatabase.FindAssets("t:AudioMixer");
-IEnumerable<AudioMixerController> mixers = guids.Select(AssetDatabase.GUIDToAssetPath).Select(AssetDatabase.LoadMainAssetAtPath).Cast<AudioMixerController>();
+string[] guids = UnityEditor.AssetDatabase.FindAssets("t:AudioMixer");
+var mixers = System.Linq.Enumerable.Cast<UnityEditor.Audio.AudioMixerController>(
+    System.Linq.Enumerable.Select(
+        System.Linq.Enumerable.Select(guids, UnityEditor.AssetDatabase.GUIDToAssetPath),
+        UnityEditor.AssetDatabase.LoadMainAssetAtPath));
 ```
 
 ## Creating an Audio Mixer
 
 ```c#
-AudioMixerController mixerController = AudioMixerController.CreateMixerControllerAtPath("TheNameOfTheMixer.mixer");
+var mixerController = UnityEditor.Audio.AudioMixerController.CreateMixerControllerAtPath("TheNameOfTheMixer.mixer");
 ```
 
 ## Listing all Audio Mixer Groups
 
 ```c#
-List<AudioMixerGroupController> groupsInMixer = mixerController.GetAllAudioGroupsSlow();
+var groupsInMixer = mixerController.GetAllAudioGroupsSlow();
 ```
 
 ## Creating a new Audio Mixer Group
 ```c#
-AudioMixerGroupController newGroup = mixerController.CreateNewGroup("the new group name, like 'SFX'", storeUndoState: true);
+var newGroup = mixerController.CreateNewGroup("the new group name, like 'SFX'", storeUndoState: true);
 
 // Decide how the group should be parented - the default behaviour is to the master. Another locally created group can also be passed in here.
 mixerController.AddChildToParent(newGroup, mixerController.masterGroup);
@@ -46,12 +54,12 @@ mixerController.AddChildToParent(newGroup, mixerController.masterGroup);
 
 ## Valid operations on Mixer Groups
 ```c#
-AudioMixerGroupController group = /* ... */;
+var group = /* an AudioMixerGroupController */;
 
 string name = group.name;
-AudioMixerController mixerThisBelongsTo = group.controller;
-AudioMixerEffectController[] effectsOnGroup = group.effects;
+var mixerThisBelongsTo = group.controller;
+var effectsOnGroup = group.effects;
 
 var volume = group.GetValueForVolume(mixerThisBelongsTo, mixerThisBelongsTo.TargetSnapshot);
-group.SetValueForVolume(mixerThisBelongsTo, mixerThisBelongsTo.TargetSnapshot, Mathf.Clamp(volume + /* some relative change in decibels */, AudioMixerController.kMinVolume, AudioMixerController.GetMaxVolume()));
+group.SetValueForVolume(mixerThisBelongsTo, mixerThisBelongsTo.TargetSnapshot, UnityEngine.Mathf.Clamp(volume + /* some relative change in decibels */, UnityEditor.Audio.AudioMixerController.kMinVolume, UnityEditor.Audio.AudioMixerController.GetMaxVolume()));
 ```
