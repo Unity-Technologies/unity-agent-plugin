@@ -98,7 +98,7 @@ Checks if a GameObject is part of the active palette.
 
 **Example:**
 ```csharp
-if (GridPaintingState.IsPartOfActivePalette(selectedObject))
+if (UnityEditor.Tilemaps.GridPaintingState.IsPartOfActivePalette(selectedObject))
 {
     Debug.Log("Selected object is part of the active palette");
 }
@@ -119,10 +119,10 @@ Retrieves a stored selection from the current `GridBrushPickStore` and copies it
 **Example:**
 ```csharp
 // Apply the first user-saved brush selection
-GridPaintingState.SetPickOnActiveGridBrush(user: true, index: 0);
+UnityEditor.Tilemaps.GridPaintingState.SetPickOnActiveGridBrush(user: true, index: 0);
 
 // Apply the second automatically-saved brush selection
-GridPaintingState.SetPickOnActiveGridBrush(user: false, index: 1);
+UnityEditor.Tilemaps.GridPaintingState.SetPickOnActiveGridBrush(user: false, index: 1);
 ```
 
 ## Common Usage Patterns
@@ -131,11 +131,11 @@ GridPaintingState.SetPickOnActiveGridBrush(user: false, index: 1);
 
 ```csharp
 // Get available targets
-GameObject[] targets = GridPaintingState.validTargets;
+var targets = UnityEditor.Tilemaps.GridPaintingState.validTargets;
 if (targets != null && targets.Length > 0)
 {
     // Set the first valid target
-    GridPaintingState.scenePaintTarget = targets[0];
+    UnityEditor.Tilemaps.GridPaintingState.scenePaintTarget = targets[0];
 }
 ```
 
@@ -143,12 +143,12 @@ if (targets != null && targets.Length > 0)
 
 ```csharp
 // Get available brushes
-IList<GridBrushBase> availableBrushes = GridPaintingState.brushes;
+var availableBrushes = UnityEditor.Tilemaps.GridPaintingState.brushes;
 foreach (var brush in availableBrushes)
 {
     if (brush is MyCustomBrush)
     {
-        GridPaintingState.gridBrush = brush;
+        UnityEditor.Tilemaps.GridPaintingState.gridBrush = brush;
         break;
     }
 }
@@ -157,12 +157,12 @@ foreach (var brush in availableBrushes)
 ### Changing the active palette
 
 ```csharp
-// Get available palettes
-IList<GameObject> availablePalettes = GridPaintingState.palettes;
+// Get available palettes. Fully qualified: this runs through `eval`, which takes no usings.
+var availablePalettes = UnityEditor.Tilemaps.GridPaintingState.palettes;
 if (availablePalettes.Count > 0)
 {
     // Setting an invalid palette throws ArgumentException
-    GridPaintingState.palette = availablePalettes[0];
+    UnityEditor.Tilemaps.GridPaintingState.palette = availablePalettes[0];
 }
 ```
 
