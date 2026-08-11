@@ -30,6 +30,19 @@ from `unity command --format json` rather than assuming one — the inline form 
 
 Generates C# editor scripts to manipulate Unity sprites using ISpriteEditorDataProvider. Works with TextureImporter, PSBImporter, and custom importers.
 
+### Passing C# to `eval`
+
+`eval` compiles a **statement block, not a file**. Two consequences, both of which cause a
+compile error rather than a warning:
+
+- **No `using` directives.** The compiler reads `using UnityEngine;` as a resource-disposal
+  statement and rejects it (`CS0210`).
+- **Types must be fully qualified.** A bare `AssetDatabase` or `Volume` does not resolve
+  (`CS0246` / `CS0103`), and a bare `Object` is ambiguous with `object` (`CS0104`).
+
+Where a snippet below is written as a file — with usings, for readability, or because it is
+meant to be saved into the project — qualify the types before passing it to `eval`.
+
 ## Workflow
 
 All generated scripts must follow the Safe Core Pattern in [references/templates.md](references/templates.md), which includes MANDATORY capability checks. NEVER attempt operations if capability checks fail - this prevents data corruption. After execution, verify results in Unity console and Project window.

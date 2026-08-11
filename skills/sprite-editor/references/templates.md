@@ -2,20 +2,23 @@
 
 ## Safe Core Pattern (MANDATORY)
 
+Types are fully qualified because this runs through `eval`, which rejects `using` directives.
+If you save it as a `.cs` file instead, add `using UnityEditor.U2D.Sprites;` and shorten them.
+
 Use this structure for all sprite modification tasks.
 
 **CRITICAL:** If capability checks fail, the script MUST return immediately. NEVER bypass capability checks even if you suspect the API might work - this can cause data corruption and violates Unity's data provider contract.
 
 ```csharp
 // 1. Get and Init Data Provider
-var importer = AssetImporter.GetAtPath(assetPath);
-var factory = new SpriteDataProviderFactories();
+var importer = UnityEditor.AssetImporter.GetAtPath(assetPath);
+var factory = new UnityEditor.U2D.Sprites.SpriteDataProviderFactories();
 factory.Init();
 var dataProvider = factory.GetSpriteEditorDataProviderFromObject(importer);
 dataProvider.InitSpriteEditorDataProvider();
 
 // 2. MANDATORY: Check Capabilities - ABORT if not supported
-var editCapability = dataProvider.GetDataProvider<ISpriteFrameEditCapability>();
+var editCapability = dataProvider.GetDataProvider<UnityEditor.U2D.Sprites.ISpriteFrameEditCapability>();
 if (editCapability == null)
 {
     throw new System.Exception("Edit capability not supported by importer. Operation aborted.");
@@ -23,7 +26,7 @@ if (editCapability == null)
 
 var capability = editCapability.GetEditCapability();
 // Check for: EditSpriteName, EditSpriteRect, EditBorder, EditPivot, CreateAndDeleteSprite
-if (!capability.HasCapability(EEditCapability.EditSpriteName))
+if (!capability.HasCapability(UnityEditor.U2D.Sprites.EEditCapability.EditSpriteName))
 {
     throw new System.Exception("Operation not supported by importer. User action aborted.");
 }
@@ -45,7 +48,7 @@ Before performing any modification operation, check if the importer supports it.
 **DO NOT rationalize bypassing this check.** Even if you believe the API might accept the operation, capability checks are mandatory for data integrity. Return immediately on failure - no exceptions.
 
 ```csharp
-var editCapability = dataProvider.GetDataProvider<ISpriteFrameEditCapability>();
+var editCapability = dataProvider.GetDataProvider<UnityEditor.U2D.Sprites.ISpriteFrameEditCapability>();
 if (editCapability == null)
 {
     throw new System.Exception("Edit capability not supported by importer. User action aborted.");
@@ -53,7 +56,7 @@ if (editCapability == null)
 }
 
 var capability = editCapability.GetEditCapability();
-if (!capability.HasCapability(EEditCapability.EditSpriteName)) // Adjust based on task
+if (!capability.HasCapability(UnityEditor.U2D.Sprites.EEditCapability.EditSpriteName)) // Adjust based on task
 {
     throw new System.Exception("Importer does not support the requested operation. User action aborted.");
     return;
