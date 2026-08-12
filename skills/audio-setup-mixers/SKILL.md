@@ -1,14 +1,25 @@
 ---
 name: audio-setup-mixers
-description: Scans the scene and audio assets to appropriately route Audio Sources into existing Audio Mixer Groups or new ones if necessary. Use when user asks about adjusting sound levels or quality in general, cleaning up mixer assignments or creating mixers.
+description: Scans the scene and audio assets to appropriately route Audio Sources into existing Audio Mixer Groups, classifying each source by what it plays. Use when the user asks about cleaning up mixer assignments, routing audio through a mixer, or which group a sound belongs in. Creating mixers and groups, and setting volumes, are not automated — the skill inventories what exists and asks the user to add anything missing.
 required_editor_version: ">=6000.3.13"
 ---
 # Audio Mixer Setup
 
-The authoring APIs this skill uses (`AudioMixerController`, `AudioMixerGroupController`)
-live in `UnityEditor.Audio` and only exist inside a running Editor. There is no file
-you can write to create or re-route a mixer, so this skill needs a live Editor it can
-execute C# in. Step 0 establishes that before anything else.
+Routing an Audio Source to a mixer group is a scene edit that only a running Editor can
+make, so this skill needs a live Editor it can execute C# in. Step 0 establishes that
+before anything else.
+
+**What this skill automates, and what it hands back to you.** Inspecting mixers and
+routing Audio Sources into groups is entirely public Unity API, and that is the tedious
+part — walking dozens of sources and classifying them by what they play. Creating a mixer
+or a group has no public API; it exists only on types Unity does not commit to keeping
+stable. So this skill will not create groups behind your back. It inventories what exists,
+proposes the routing, asks you to add any missing group in the Audio Mixer window, and
+then does all the routing itself.
+
+That is a deliberate limit, not a gap to work around. Do not reach for reflection to
+create groups, and do not hand-edit a `.mixer` file — mixer structure is not safely
+authorable blind.
 
 ## Step 0: Confirm you can run C# in the Editor
 
@@ -50,9 +61,17 @@ meant to be saved into the project — qualify the types before passing it to `e
 ## Step 1: Pre-flight
 If the user hasn't explicitly asked for Audio Mixers, confirm that they want to proceed with setting them up.
 
-Then find existing mixers by running the snippet from [references/api.md](references/api.md)
-through the Editor as described in Step 0, and **use the referenced API** to understand
-their hierarchy and enumerate the leaf Mixer Group names.
+Then inventory what already exists with the mixer-inventory snippet in
+[references/api.md](references/api.md), run through the Editor as described in Step 0. That gives
+you every mixer in the project and the group names in each.
+
+It returns a flat list of groups, not the parent/child tree. That is enough to route into, and it
+is all the public API exposes. If the hierarchy matters for the conversation, ask the user to look
+at the Audio Mixer window and describe it — don't reach for the non-public tree API to find out.
+
+**If the project has no mixer at all,** say so and stop rather than improvising one: creating a
+mixer has no public API. Ask the user to create one (Window → Audio → Audio Mixer, then the **+**
+next to Mixers), and pick up from here once it exists.
 
 ## Step 2: Find scene references
 Find all Audio Source components, look at their assigned Generator asset names, and generalize a fitting class or category of the sound name, ideally something already existing. 
@@ -65,18 +84,36 @@ Examples for Audio Clip asset names:
 If the assigned asset isn't descriptive or non-existing, try to look at the GameObject name or potential adjacent MonoBehaviour names.
 Ask to create an Uncategorized group if it seems hard or confidence is low in classifying how an Audio Source is being used.
 
-## Step 3: Suggest and create new Mixer Groups
-Suggest the compiled changelist and revise with user. 
-WAIT for the user to respond before proceeding.
+## Step 3: Agree the group list, and get any missing groups created
+Present the classification from Step 2 as a proposed routing — each Audio Source and the group you
+intend to send it to — and revise it with the user.
 
-See if there's a good existing Audio Mixer with a fitting name and reasonable overlap in Mixer Group names, and suggest that OR offer to create a new Audio Mixer specific to this scene regardless.
+**WAIT for the user to respond before proceeding.**
 
-**If** reusing an existing mixer and new groups need to be added, confirm the suggested changes with the user and wait before proceeding.
+Where the mixer's existing groups already cover the categories, prefer them over new names, even
+when the existing name is not the one you'd have chosen. Reusing `Foley` beats introducing `SFX`
+alongside it.
 
-## Step 4: Walk Audio Sources and assign Audio Mixer Groups
-Repeat the process now with settled Mixer Group names.
+For categories with no matching group, you cannot create the group — there is no public API for it.
+Hand it over precisely, naming the mixer and the exact group names, as shown at the end of
+[references/api.md](references/api.md). Then **re-run the inventory snippet to confirm the groups
+exist and check their spelling** before routing. Don't assume the user did it, and don't assume
+they spelled it the way you asked.
 
-The Audio Mixer Group property of the Audio Source should be updated to point to the classified group.
+## Step 4: Route the Audio Sources
+With the group list settled and confirmed present, assign each Audio Source's output group using the
+routing snippet in [references/api.md](references/api.md). It is public API throughout, and it wraps
+the whole pass in a single undo step so the user can back all of it out at once.
+
+Two things to report rather than assume:
+
+- **Any `NO SUCH GROUP` entries the snippet returns.** That means a group you expected is not in the
+  mixer — usually a spelling difference. Resolve it with the user, don't silently skip the source.
+- **The scene was modified, not the mixer asset.** Routing lives on the Audio Source, so it only
+  persists once the scene is saved. Tell the user, and save only with their agreement.
+
+**Volume, effects, and re-parenting are out of scope.** Those live on non-public API. If the user
+asks for them, say the routing is done and point them at the Audio Mixer window for the mix itself.
 
 ## References
 See [references/api.md](references/api.md)
