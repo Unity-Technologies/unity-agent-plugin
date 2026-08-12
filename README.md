@@ -137,7 +137,6 @@ explicitly instead of describing the task.
 | `setup-game-inputs` | Input System — action maps, bindings, control schemes, rebinding |
 | `setup-audiorandomcontainer` | AudioRandomContainer assets for randomized playback |
 | `android-add-adaptive-performance` | Android thermal and power signals mapped to dynamic quality tiers |
-| `asset-transformer-toolkit` | 3D model and point-cloud import, RuleSets and Actions, LOD generation |
 
 ## Works with
 
