@@ -1,65 +1,174 @@
-## Architecture
+## Architecture: what is public and what is not
 
-All `AudioMixer`s in the editor are actually `AudioMixerController`s, that affords extra authoring APIs.
-Similarly, `AudioMixerGroup`s are `AudioMixerGroupController`s. 
+Every `AudioMixer` in the Editor is really an `AudioMixerController`, and every `AudioMixerGroup` is
+an `AudioMixerGroupController`. Those two controller types are **internal** to `UnityEditor.Audio`,
+so naming either one in an `eval` snippet fails to compile:
 
-`AudioMixerController` and `AudioMixerGroupController` are **internal** to `UnityEditor.Audio`,
-and that matters for how you reach them.
+```
+CS0122: 'AudioMixerController' is inaccessible due to its protection level
+```
 
-**Measured: naming these types directly in an `eval` snippet fails to compile** —
-`CS0122: 'AudioMixerController' is inaccessible due to its protection level`. Reflection does
-reach them:
+What matters is that this only affects **authoring**. Both controllers derive from public runtime
+types — `AudioMixerController : UnityEngine.Audio.AudioMixer` and
+`AudioMixerGroupController : UnityEngine.Audio.AudioMixerGroup` — so loading, enumerating, and
+assigning all work through the public API with no reflection at all. Reflection is needed for
+exactly five members, listed below.
 
-```c#
+Measured on 6000.5.7f1: creating a mixer, adding a group, parenting it, changing a volume, saving,
+and reloading from disk all succeed through this split, and the reloaded asset keeps its group
+structure. Do not reach for a hand-written `.mixer` file as a substitute — the authoring calls
+build the asset's subassets for you, and `CreateNewGroup`'s `storeUndoState` argument is what
+registers the undo step.
+
+| Operation | Route |
+|---|---|
+| Find mixers in the project | public — `AssetDatabase` + `UnityEngine.Audio.AudioMixer` |
+| Enumerate a mixer's groups | public — `AudioMixer.FindMatchingGroups` |
+| Assign a group to an Audio Source | public — `AudioSource.outputAudioMixerGroup` |
+| Create a mixer asset | **reflection** — `CreateMixerControllerAtPath` |
+| Read the master group | **reflection** — `masterGroup` |
+| Create a group | **reflection** — `CreateNewGroup` |
+| Parent a group | **reflection** — `AddChildToParent` |
+| Read or write a group volume | **reflection** — `GetValueForVolume` / `SetValueForVolume` |
+
+All snippets below are written for `unity command eval --code '<snippet>'`: fully qualified, no
+`using` directives, returning their result rather than logging it.
+
+## Reflection preamble
+
+`eval` runs each snippet in a fresh scope, so put this at the top of any snippet that needs an
+authoring call. It carries no dependency on the internal types being nameable.
+
+```csharp
+var flags = System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.NonPublic
+          | System.Reflection.BindingFlags.Instance | System.Reflection.BindingFlags.Static;
 var mixerType = System.Type.GetType("UnityEditor.Audio.AudioMixerController, UnityEditor");
 var groupType = System.Type.GetType("UnityEditor.Audio.AudioMixerGroupController, UnityEditor");
+if (mixerType == null || groupType == null) { return "audio mixer authoring types not found"; }
 ```
 
-So treat the signatures below as the **API shapes**, not as code to paste: invoke them through
-reflection, or run the code as a compiled Editor script in the project rather than through
-`eval`. Don't paste a snippet that names the type and expect it to build.
+## Finding existing Audio Mixers — public, no reflection
 
-Types are otherwise fully qualified below, because `eval` rejects `using` directives. If you
-save any of this into a `.cs` file instead, add `using UnityEditor.Audio;` and
-`using UnityEngine.Audio;` and drop the qualification.
-
-## Finding existing Audio Mixers
-```c#
-string[] guids = UnityEditor.AssetDatabase.FindAssets("t:AudioMixer");
-var mixers = System.Linq.Enumerable.Cast<UnityEditor.Audio.AudioMixerController>(
-    System.Linq.Enumerable.Select(
-        System.Linq.Enumerable.Select(guids, UnityEditor.AssetDatabase.GUIDToAssetPath),
-        UnityEditor.AssetDatabase.LoadMainAssetAtPath));
+```csharp
+var guids = UnityEditor.AssetDatabase.FindAssets("t:AudioMixer");
+var rows = new System.Collections.Generic.List<string>();
+foreach (var guid in guids)
+{
+    var path = UnityEditor.AssetDatabase.GUIDToAssetPath(guid);
+    var mixer = UnityEditor.AssetDatabase.LoadAssetAtPath<UnityEngine.Audio.AudioMixer>(path);
+    var groups = mixer.FindMatchingGroups("");
+    var names = System.Linq.Enumerable.Select(groups, g => g.name);
+    rows.Add($"{path}: {groups.Length} groups [{string.Join(", ", names)}]");
+}
+return rows.Count == 0 ? "no AudioMixer assets in this project" : string.Join("\n", rows);
 ```
 
-## Creating an Audio Mixer
+`LoadAssetAtPath<AudioMixer>` returns the controller instance — the same object the authoring calls
+below expect — so a mixer loaded this way can be passed straight into them.
 
-```c#
-var mixerController = UnityEditor.Audio.AudioMixerController.CreateMixerControllerAtPath("TheNameOfTheMixer.mixer");
+`FindMatchingGroups("")` returns every group as the public `AudioMixerGroup` type, which is enough
+for classification and routing. It does not expose the parent/child shape; use
+`GetAllAudioGroupsSlow` through reflection if the hierarchy itself matters, and note it returns a
+`List<>` rather than an array.
+
+## Creating an Audio Mixer — reflection
+
+```csharp
+// preamble above
+var path = "Assets/Audio/TheNameOfTheMixer.mixer";
+mixerType.GetMethod("CreateMixerControllerAtPath", flags).Invoke(null, new object[] { path });
+UnityEditor.AssetDatabase.SaveAssets();
+UnityEditor.AssetDatabase.Refresh();
+var mixer = UnityEditor.AssetDatabase.LoadAssetAtPath<UnityEngine.Audio.AudioMixer>(path);
+return mixer == null ? "creation failed" : $"created {path}";
 ```
 
-## Listing all Audio Mixer Groups
+The parent folder must already exist. Creating a mixer at a path whose folder is missing throws
+`UnityException` rather than creating the folder for you, so call
+`UnityEditor.AssetDatabase.CreateFolder` first.
 
-```c#
-var groupsInMixer = mixerController.GetAllAudioGroupsSlow();
+## Creating and parenting a Mixer Group — reflection
+
+`AddChildToParent` takes the child first and the parent second. Getting that order wrong is the one
+mistake to watch for here: passing `(parent, child)` throws nothing, and the group you just created
+disappears from the tree — `FindMatchingGroups` comes back with `Master` alone. Verify the group
+list after parenting rather than trusting the call to have worked.
+
+```csharp
+// preamble above
+var mixer = UnityEditor.AssetDatabase.LoadAssetAtPath<UnityEngine.Audio.AudioMixer>(
+    "Assets/Audio/TheNameOfTheMixer.mixer");
+var master = mixerType.GetProperty("masterGroup", flags).GetValue(mixer);
+
+// storeUndoState: true is what makes this one undo step for the user — keep it true.
+var newGroup = mixerType.GetMethod("CreateNewGroup", flags)
+    .Invoke(mixer, new object[] { "SFX", true });
+
+// Parent to master, or to another group created the same way.
+mixerType.GetMethod("AddChildToParent", flags).Invoke(mixer, new object[] { newGroup, master });
+
+UnityEditor.AssetDatabase.SaveAssets();
+UnityEditor.AssetDatabase.Refresh();
+var names = System.Linq.Enumerable.Select(mixer.FindMatchingGroups(""), g => g.name);
+return string.Join(", ", names);
 ```
 
-## Creating a new Audio Mixer Group
-```c#
-var newGroup = mixerController.CreateNewGroup("the new group name, like 'SFX'", storeUndoState: true);
+## Reading and writing a group volume — reflection
 
-// Decide how the group should be parented - the default behaviour is to the master. Another locally created group can also be passed in here.
-mixerController.AddChildToParent(newGroup, mixerController.masterGroup);
+Volume is per-snapshot, so both calls need the mixer's current target snapshot. Clamp to the
+range the mixer itself defines rather than inventing bounds.
+
+```csharp
+// preamble above
+var mixer = UnityEditor.AssetDatabase.LoadAssetAtPath<UnityEngine.Audio.AudioMixer>(
+    "Assets/Audio/TheNameOfTheMixer.mixer");
+var snapshot = mixerType.GetProperty("TargetSnapshot", flags).GetValue(mixer);
+var group = System.Array.Find(mixer.FindMatchingGroups(""), g => g.name == "SFX");
+
+var getVolume = groupType.GetMethod("GetValueForVolume", flags);
+var current = (float)getVolume.Invoke(group, new object[] { mixer, snapshot });
+
+var min = (float)mixerType.GetField("kMinVolume", flags).GetValue(null);
+var max = (float)mixerType.GetMethod("GetMaxVolume", flags).Invoke(null, null);
+var target = UnityEngine.Mathf.Clamp(current - 6f, min, max);
+
+groupType.GetMethod("SetValueForVolume", flags)
+    .Invoke(group, new object[] { mixer, snapshot, target });
+UnityEditor.AssetDatabase.SaveAssets();
+return $"volume {current} -> {(float)getVolume.Invoke(group, new object[] { mixer, snapshot })}";
 ```
 
-## Valid operations on Mixer Groups
-```c#
-var group = /* an AudioMixerGroupController */;
+## Assigning a group to an Audio Source — public, no reflection
 
-string name = group.name;
-var mixerThisBelongsTo = group.controller;
-var effectsOnGroup = group.effects;
+`AudioSource.outputAudioMixerGroup` is typed as the public `AudioMixerGroup`, and the controller
+instances returned above are assignable to it, so no cast or reflection is involved.
 
-var volume = group.GetValueForVolume(mixerThisBelongsTo, mixerThisBelongsTo.TargetSnapshot);
-group.SetValueForVolume(mixerThisBelongsTo, mixerThisBelongsTo.TargetSnapshot, UnityEngine.Mathf.Clamp(volume + /* some relative change in decibels */, UnityEditor.Audio.AudioMixerController.kMinVolume, UnityEditor.Audio.AudioMixerController.GetMaxVolume()));
+```csharp
+var mixer = UnityEditor.AssetDatabase.LoadAssetAtPath<UnityEngine.Audio.AudioMixer>(
+    "Assets/Audio/TheNameOfTheMixer.mixer");
+var group = System.Array.Find(mixer.FindMatchingGroups(""), g => g.name == "SFX");
+var sources = UnityEngine.Object.FindObjectsByType<UnityEngine.AudioSource>(
+    UnityEngine.FindObjectsInactive.Include, UnityEngine.FindObjectsSortMode.None);
+
+var changed = new System.Collections.Generic.List<string>();
+foreach (var source in sources)
+{
+    if (source.gameObject.name != "TheGameObjectName") { continue; }
+    UnityEditor.Undo.RecordObject(source, "Assign mixer group");
+    source.outputAudioMixerGroup = group;
+    UnityEditor.EditorUtility.SetDirty(source);
+    changed.Add(source.gameObject.name);
+}
+return changed.Count == 0 ? "no matching Audio Source" : $"routed: {string.Join(", ", changed)}";
 ```
+
+Assigning the property changes the **scene**, not the mixer asset, so the scene has to be saved for
+it to persist — `UnityEditor.SceneManagement.EditorSceneManager.SaveOpenScenes()`. Report to the
+user that the scene was modified.
+
+## Valid operations on a group object
+
+Reachable off a group returned by `FindMatchingGroups` with no reflection: `name`, and the
+`UnityEngine.Audio.AudioMixerGroup` surface. `controller` and `effects` are declared on the
+internal controller type, so read them reflectively off `groupType` if the effect chain matters —
+that is the path the mixer-audit step in the skill body uses.
