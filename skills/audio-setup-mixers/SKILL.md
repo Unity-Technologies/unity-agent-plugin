@@ -1,7 +1,6 @@
 ---
 name: audio-setup-mixers
 description: Scans the scene and audio assets to appropriately route Audio Sources into existing Audio Mixer Groups, classifying each source by what it plays. Use when the user asks about cleaning up mixer assignments, routing audio through a mixer, or which group a sound belongs in. Creating mixers and groups, and setting volumes, are not automated — the skill inventories what exists and asks the user to add anything missing.
-required_editor_version: ">=6000.3.13"
 ---
 # Audio Mixer Setup
 
@@ -90,9 +89,11 @@ intend to send it to — and revise it with the user.
 
 **WAIT for the user to respond before proceeding.**
 
-Where the mixer's existing groups already cover the categories, prefer them over new names, even
-when the existing name is not the one you'd have chosen. Reusing `Foley` beats introducing `SFX`
-alongside it.
+Prefer an existing group when it genuinely covers the category, even if you'd have named it
+differently. But **don't collapse categories that a mixing engineer would keep apart** — Foley is a
+subset of SFX, not another word for it, so a gunshot does not belong in a `Foley` group just because
+one exists. When the existing groups only partly cover your categories, say which ones fit and which
+need a new group, and let the user decide.
 
 For categories with no matching group, you cannot create the group — there is no public API for it.
 Hand it over precisely, naming the mixer and the exact group names, as shown at the end of
@@ -105,10 +106,17 @@ With the group list settled and confirmed present, assign each Audio Source's ou
 routing snippet in [references/api.md](references/api.md). It is public API throughout, and it wraps
 the whole pass in a single undo step so the user can back all of it out at once.
 
-Two things to report rather than assume:
+**Key the mapping on the identifier you classified by.** Step 2 reads the clip asset name first and
+only falls back to the GameObject name, so the mapping accepts either — the two are different
+identifiers and keying on the wrong one drops sources.
+
+Three things to report rather than assume:
 
 - **Any `NO SUCH GROUP` entries the snippet returns.** That means a group you expected is not in the
   mixer — usually a spelling difference. Resolve it with the user, don't silently skip the source.
+- **Any `NOT IN THE MAPPING` entries.** Those are Audio Sources your classification missed. Reporting
+  a successful routing while sources were quietly left unrouted is the worst outcome here, because it
+  reads as success.
 - **The scene was modified, not the mixer asset.** Routing lives on the Audio Source, so it only
   persists once the scene is saved. Tell the user, and save only with their agreement.
 
