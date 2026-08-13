@@ -43,11 +43,10 @@ public static class L10nBatchProcessor
 
                 // Wire the listener through the public UnityEventTools API. The persistent-call
                 // fields could be written directly through SerializedObject instead, but those
-                // are private serialized names with no compatibility guarantee — and it isn't
+                // are private serialized names with no compatibility guarantee, and it isn't
                 // necessary. A delegate to Text's public `text` setter, handed to
-                // AddPersistentListener, serializes to exactly the same thing: target = the Text
-                // component, method = set_text, mode = EventDefined (dynamic), call state =
-                // EditorAndRuntime. Measured on Unity 6000.5.7f1.
+                // AddPersistentListener, produces the same serialized call: target = the Text
+                // component, method = set_text, mode = EventDefined (dynamic).
                 //
                 // The setter has no C# method-group name, so the delegate is built by name.
                 // That is reflection over a *public* member, which is fine; reaching for the
@@ -60,6 +59,15 @@ public static class L10nBatchProcessor
                     UnityEventTools.RemovePersistentListener(lse.OnUpdateString, i);
                 }
                 UnityEventTools.AddPersistentListener(lse.OnUpdateString, setText);
+
+                // AddPersistentListener leaves the call at RuntimeOnly, which means the label does
+                // NOT update when the locale changes in the Editor: correct in a build, dormant
+                // while authoring, and it stays dormant through a save and reload. Set the state
+                // explicitly. SetPersistentListenerState is public API on UnityEventBase.
+                // Verified on Unity 6000.5.8f1: without this the listener never fires in Edit mode.
+                var callIndex = lse.OnUpdateString.GetPersistentEventCount() - 1;
+                lse.OnUpdateString.SetPersistentListenerState(
+                    callIndex, UnityEventCallState.EditorAndRuntime);
 
                 EditorUtility.SetDirty(lse);
                 break;

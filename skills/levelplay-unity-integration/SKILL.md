@@ -36,7 +36,11 @@ Record this answer for later strategy recommendation in Step 8.
 
 ### 3. Install LevelPlay SDK via UPM
 
-**If the SDK is already installed:** Ask the user to verify 'Ads Mediation' appears under 'Packages: In Project' in the Package Manager. If it does, proceed directly to Step 4.
+**If the SDK looks already installed:** do not take that on trust, and do not ask the user to read
+the Package Manager window for you. Read `Packages/packages-lock.json` and look for
+`com.unity.services.levelplay`. If it is there, say which version resolved and proceed to Step 4.
+If it is not, it is not installed, whatever the conversation so far has assumed: continue with the
+install below.
 
 Guide through installing the LevelPlay Unity package using Unity Package Manager:
 
@@ -51,7 +55,28 @@ Guide through installing the LevelPlay Unity package using Unity Package Manager
 
 When you install the package, you may see a prompt to install Mobile Dependency Resolver — click **Import** if it appears. This is covered in more detail in the next step.
 
-Verify the package appears under "Packages: In Project" in Package Manager after installation.
+**Then verify it resolved, by reading the project rather than by asking.** The package id is
+`com.unity.services.levelplay` (its Package Manager display name is **Ads Mediation**; the id is
+what the project files record). Check both files:
+
+- **`Packages/manifest.json`** lists what the project *asks for*. `com.unity.services.levelplay`
+  must appear under `dependencies`.
+- **`Packages/packages-lock.json`** records what Unity actually *resolved*. The same id must appear
+  here too, with a concrete version. This is the file that answers "did it install", and it is the
+  one to trust.
+
+Both are plain JSON in the project, so this check needs no Editor, no CLI, and nothing from the
+user. Read them.
+
+> **This is a hard gate, not a formality.** Do not write, generate, or paste a single line of
+> LevelPlay code until `com.unity.services.levelplay` is present in `packages-lock.json`. Skipping
+> ahead produces code that looks correct, compiles nowhere, and fails with `CS0246` on every
+> LevelPlay symbol. If the id is missing from `manifest.json`, the install never happened. If it is
+> in `manifest.json` but not `packages-lock.json`, Unity has not resolved it yet: the Editor may
+> still be importing, or resolution failed. Say which of the two you found, and stop.
+
+Report the resolved version you found. Do not report "installed" on the strength of the Package
+Manager window, a previous turn, or a user's recollection.
 
 **Network Manager:** Access **Ads Mediation > Network Manager** at any time to install additional ad network adapters and check for SDK and adapter updates.
 
@@ -168,18 +193,26 @@ If CCPA or COPPA fails to compile, upgrade your Unity package/SDK via **Ads Medi
 
 **Installation checkpoint:**
 
-Before providing initialization code, confirm the prerequisites. **If the user confirmed they are not using AdMob, omit the Step 6 item.** If Steps 3 and 4 were already confirmed in this conversation, skip those items — only ask about Step 5 and Step 6 (if AdMob).
+**First, re-read `Packages/packages-lock.json` and confirm `com.unity.services.levelplay` is there.**
+Do this every time you reach this point, even if Step 3 already passed earlier in the conversation.
+It costs one file read, and it is the only item here you can settle without the user. An earlier
+turn saying the package was installed is not evidence that it is: this check exists because the
+install step is the one most often skipped, and the resulting code fails with `CS0246` on every
+LevelPlay symbol. If the id is absent, go back to Step 3 and do not write initialization code.
+
+Then confirm the remaining prerequisites with the user, which are the ones no file can answer.
+**If the user confirmed they are not using AdMob, omit the Step 6 item.** If Step 4 was already
+confirmed in this conversation, skip that item and ask only about Step 5 and Step 6 (if AdMob).
 
 "Please confirm these are working correctly:
-- Step 3: Do you see the 'Ads Mediation' package in Unity Package Manager under 'Packages: In Project'?
 - Step 4: Have you run dependency resolution for your target platform(s) without errors?
 - Step 5: Do you have your App Key copied from the LevelPlay dashboard?
 - Step 6 (only if using AdMob): Have you configured AdMob keys in Unity Editor settings?
 
 Verify these are working before proceeding."
 
-**If they answer NO or are unsure:**
-- Missing Step 3: Code will show `CS0246` namespace errors → Direct to Step 3
+**If the package check failed or they answer NO or are unsure:**
+- Package id absent from `packages-lock.json`: code will show `CS0246` namespace errors → Direct to Step 3. This one you established yourself; do not ask the user to overrule it.
 - Missing Step 4: Code compiles but Android/iOS builds will fail → Direct to Step 4
 - Missing Step 5: They won't have credentials to initialize → Direct to Step 5
 - Do not provide C# code until they confirm all steps are complete
@@ -350,7 +383,7 @@ If the user reports a problem, route to the matching issue in `references/troubl
 
 | Symptom | Likely root cause | Action |
 |---|---|---|
-| `CS0246` — `Unity.Services.LevelPlay` not found; red underlines on all LevelPlay code | Ads Mediation package not installed | Stop giving code; verify package in Package Manager; install (Step 3); restart Editor; then resume. See troubleshooting.md. |
+| `CS0246` on `Unity.Services.LevelPlay`; red underlines on all LevelPlay code | Ads Mediation package not installed | Stop giving code; check `Packages/packages-lock.json` for `com.unity.services.levelplay`; install (Step 3); restart Editor; then resume. See troubleshooting.md. |
 | Android gradle / iOS build fails with dependency errors; compiles in Editor but fails at build | Native dependencies not resolved | Resolve dependencies (Step 4 / dependency-resolution.md); verify `Assets/Plugins/Android/`; rebuild. See troubleshooting.md. |
 | Ads not loading | SDK not initialized, wrong App Key, ad created before init, or no connectivity | Confirm `OnInitSuccess` fires before creating ads; check App Key; test on device. See troubleshooting.md. |
 | Callbacks not firing | Events registered after init, missing subscriptions, or script destroyed | Register callbacks before `Init()`; verify subscriptions; use a persistent GameObject. See troubleshooting.md. |

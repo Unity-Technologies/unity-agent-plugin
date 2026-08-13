@@ -5,10 +5,28 @@ description: "Sets up and configures Unity Localization, including locales, Stri
 This guide covers setting up and configuring Unity Localization, including locales, String and Asset Tables, Addressables integration, and CJK font support via Asset Tables.
 
 ## 0. Package Installation Check
-Before doing anything else, verify that the Localization packages is installed. Many APIs in this skill will fail silently or throw confusing errors if the package isn't present.
-1. **Check:** Use `UnityEditor.PackageManager.Client.List(true)` to check for `com.unity.localization`.
-2. **Install:** If missing, use `Client.Add("com.unity.localization")`.
-3. **Wait:** Do not proceed until `Client.List` confirms installation.
+Before doing anything else, verify that the Localization package is installed. Many APIs in this skill
+will fail silently or throw confusing errors if the package isn't present.
+
+1. **Check by reading the project, not by asking the Package Manager.** Look for
+   `com.unity.localization` in **`Packages/packages-lock.json`**. That file records what Unity
+   actually resolved, it is plain JSON, and reading it needs no Editor and no async call.
+   (`Packages/manifest.json` only records what was *requested*, so check the lock file.)
+2. **Install if missing:** `UnityEditor.PackageManager.Client.Add("com.unity.localization")`.
+3. **Wait properly.** `Client.Add` and `Client.List` are **asynchronous**: they return a request that
+   is still `InProgress` when the call returns, so reading the result in the same statement tells you
+   nothing. Do not busy-wait on `IsCompleted` either; that blocks the main thread you are running on.
+   Instead, return after firing the install, then **poll `packages-lock.json` in a later call** until
+   the id appears. Installation also triggers a domain reload, so expect the first poll or two to
+   fail; a fresh install typically resolves in a few seconds.
+4. **Confirm the types are actually loaded** before using them, since the lock file can be written
+   before the assemblies are ready:
+   ```csharp
+   var t = System.Type.GetType(
+       "UnityEngine.Localization.Settings.LocalizationSettings, Unity.Localization");
+   return t != null ? "ready" : "not loaded yet";
+   ```
+   Only proceed once that returns `ready`.
 
 ## 1. Localization Settings & Locales
 If `LocalizationEditorSettings.ActiveLocalizationSettings` is null, you must find or create it:
@@ -36,7 +54,20 @@ After any modification (adding keys, updating values), notify the Editor so it c
 - **Always qualify names:** Use `UnityEngine.UI.Image`, `UnityEngine.UI.VerticalLayoutGroup`, `UnityEngine.UI.ScrollRect`, `UnityEngine.UI.Mask`, `UnityEngine.UI.CanvasScaler`, `UnityEngine.UI.GraphicRaycaster`, `UnityEngine.UI.ContentSizeFitter`, `UnityEngine.UI.LayoutRebuilder`, etc. 
 - `UnityEngine.UI` is both a namespace and a class container, so unqualified names produce `CS0118` (namespace used like a type). Full qualification avoids this entirely.
 - **Single Instance:** Always check `GameObject.Find("YourCanvasName")` and destroy the old one before creating a new one.
-- **No Debug Dropdown:** NEVER create a manual UI dropdown or debug menu to change the locale. The Localization package has a built-in way to do this properly (e.g., via the "Localization Scene Controls" window for previews).
+- **Locale switching: use the package, and keep preview and runtime separate.** These are two
+  different mechanisms, and conflating them is why locale switching often ends up hand-rolled.
+  - **To preview a locale while authoring**, use the **Localization Scene Controls** window
+    (`Window > Asset Management > Localization Scene Controls`). This is Editor-only. It is not a
+    runtime feature, so it is not the answer when the game itself needs a language setting.
+  - **To switch locale at runtime**, assign `LocalizationSettings.SelectedLocale`. That is the
+    supported entry point, and everything bound through `LocalizeStringEvent` updates from it.
+  - **To pin which locale the game starts in**, configure a startup locale selector on the
+    Localization Settings asset. `SpecificLocaleSelector` is the one that forces a chosen locale;
+    the default chain otherwise picks up the system language.
+  - **NEVER hand-roll locale state.** A real in-game language menu is fine and expected, as long as
+    it sets `SelectedLocale` and lets the package propagate the change. What is forbidden is a debug
+    dropdown or menu that tracks its own "current language" variable, swaps strings itself, or
+    reaches around the package, because nothing else in the project will follow it.
 
 ### **Localized String Events (Robust Binding)**
 - **Check Component Type:** Identify if the target is `TextMeshPro` or legacy `UnityEngine.UI.Text`.
@@ -55,6 +86,41 @@ After any modification (adding keys, updating values), notify the Editor so it c
 ## 4. Asian Language Font Support (CJK)
 Avoid TMP Fallback Fonts for CJK locales. Use **Asset Table Font Swapping** for each specific locale instead — fallbacks are unreliable and hard to debug when glyphs are missing.
 
+### Prerequisite: TMP Essential Resources must be imported
+
+**Check this before touching any TMP API.** In a project that has never imported them,
+`TMP_Settings.instance` is `null` and TMP calls fail with a bare
+`NullReferenceException` that names nothing useful. `TMP_FontAsset.CreateFontAsset` is one of them, so
+font creation dies on the first line with an error that looks like a bug in your code.
+
+```csharp
+// The check.
+var ready = TMPro.TMP_Settings.instance != null;
+```
+
+If it is not ready, import them **non-interactively**:
+
+```csharp
+// Do NOT use EditorApplication.ExecuteMenuItem("Window/TextMeshPro/Import TMP Essential Resources").
+// It returns true and then opens a dialog that waits for a human, so nothing gets imported and the
+// run appears to hang. Import the package directly instead.
+string package = null;
+var cache = System.IO.Path.GetFullPath(System.IO.Path.Combine(
+    UnityEngine.Application.dataPath, "..", "Library", "PackageCache"));
+foreach (var dir in System.IO.Directory.GetDirectories(cache))
+{
+    // TMP ships inside com.unity.ugui in Unity 6, and the folder name carries a version hash,
+    // so search for the file rather than hardcoding a path.
+    var candidate = System.IO.Path.Combine(dir, "Package Resources", "TMP Essential Resources.unitypackage");
+    if (System.IO.File.Exists(candidate)) { package = candidate; break; }
+}
+UnityEditor.AssetDatabase.ImportPackage(package, false);   // false = non-interactive
+```
+
+Then poll `TMP_Settings.instance != null` in a **later** call, the same way as the package check in
+Step 0, and only continue once it is non-null. Verified on Unity 6000.5.8f1: the non-interactive
+import completes in a few seconds and the assets land in `Assets/TextMesh Pro`.
+
 1. **Use locale-specific fonts:** Western fonts like Arial or Liberation Sans don't contain CJK glyphs, which results in "tofu" (square blocks). Always use a font designed for the target language:
    - For **Simplified Chinese (zh-Hans)**: Use `msyh.ttc` (Microsoft YaHei) or equivalent.
    - For **Japanese (ja)**: Use `msgothic.ttc` (MS Gothic) or equivalent.
@@ -64,8 +130,30 @@ Avoid TMP Fallback Fonts for CJK locales. Use **Asset Table Font Swapping** for 
 3. **Multi-Atlas & Dynamic:** CJK character sets are too large for static atlases; a single atlas will run out of space immediately.
    - `fontAsset.atlasPopulationMode = AtlasPopulationMode.Dynamic;`
    - `fontAsset.isMultiAtlasTexturesEnabled = true;`
-4. **Sub-Assets:** Save atlas and material as sub-assets, or they'll be lost on reimport: `AssetDatabase.AddObjectToAsset(fontAsset.atlasTexture, fontAsset);`. 
-    - Explicitly link the material's texture: `fontAsset.material.mainTexture = fontAsset.atlasTexture;` and set both as dirty before saving.
+4. **Sub-Assets:** add the atlas textures **and the material**. Adding only the texture is the usual
+   mistake, and the material then never reaches the file at all: measured on Unity 6000.5.8f1, a font
+   asset saved without the second call contains **zero** `Material` objects on disk, and one with it.
+   A material that exists only in memory is not part of the asset, so anything that loads the asset
+   fresh gets whatever TMP reconstructs rather than the material you configured, and any setting you
+   applied to it is silently gone.
+    ```csharp
+    // Every atlas texture, not just the first. Step 3 enabled multi-atlas, so there may be several.
+    foreach (var atlas in fontAsset.atlasTextures)
+    {
+        UnityEditor.AssetDatabase.AddObjectToAsset(atlas, fontAsset);
+    }
+    // The material too. Without this line it is not written into the asset.
+    UnityEditor.AssetDatabase.AddObjectToAsset(fontAsset.material, fontAsset);
+    ```
+    - Explicitly link the material's texture: `fontAsset.material.mainTexture = fontAsset.atlasTexture;`
+      and set the font asset, its material, and its textures dirty before saving. (`atlasTexture` is
+      the first entry of `atlasTextures`, which is what the primary material draws from, so this is
+      consistent with adding every texture above.)
+    - **Verify against the file, not against the object you are holding.** After
+      `AssetDatabase.SaveAssets()`, call `AssetDatabase.LoadAllAssetsAtPath(path)` and confirm a
+      `Material` is among the returned objects. Do not settle for `fontAsset.material != null`: that
+      stays true whether or not the material was saved, because TMP will hand back an in-memory one,
+      so it cannot tell a saved material from an unsaved one.
 5. **Addressables:** Every asset referenced in an Asset Table must be marked as Addressable. 
     - Do not reference assets inside a `Resources/` folder in an Asset Table. This causes `OperationException: Failed to load sub-asset` errors. If an asset is in `Resources/`, copy it to `Assets/Fonts/` or similar before making it Addressable.
     - If a font asset is deleted and recreated, the new GUID must be manually updated in the Asset Table and re-added to Addressables.
@@ -86,8 +174,47 @@ Before concluding any CJK localization task:
 ### Notes when translating an existing project
 - **Minimal Code Changes**: Never modify code unrelated to localization. Use a static helper class (e.g., `L10n`) to wrap `LocalizationSettings.StringDatabase.GetLocalizedString` for easy injection into existing scripts.
 - **Robust Mapping Strategy**: When mapping existing UI text to keys, sort keys by string length (descending) and match longest strings first. This prevents short strings (like "NO") from matching parts of longer sentences. Use case-insensitive matching where appropriate.
-- **Component Event Listeners**: When setting up `LocalizeStringEvent` via script, avoid `UnityEventTools.AddPersistentListener` as it often fails to set the dynamic mode (Mode 0) correctly. 
-Instead, use the **SerializedObject Pattern** described in Section 3 to explicitly set `m_MethodName` to `set_text` and `m_Mode` to `0`. Persistent listeners **MUST** point to a method on a `UnityEngine.Object`; lambdas will fail.
+- **Component Event Listeners**: wire `LocalizeStringEvent.OnUpdateString` with
+`UnityEventTools.AddPersistentListener`, passing a delegate built over the text component's public
+`text` setter. The setter has no C# method-group name, so build the delegate by name:
+`(UnityAction<string>)Delegate.CreateDelegate(typeof(UnityAction<string>), text, "set_text")`.
+That is reflection over a **public** member, which is fine. See
+[resources/L10nBatchProcessor.cs](resources/L10nBatchProcessor.cs) for the working version, including
+clearing any existing persistent listeners first so repeated runs don't stack duplicates.
+  - Do **not** write the persistent-call fields directly through `SerializedObject` (`m_MethodName`,
+    `m_Mode`, `m_PersistentCalls`). Those are private serialized names with no compatibility
+    guarantee, and it isn't necessary: `AddPersistentListener` with the delegate above produces the
+    same serialized call (target = the text component, method = `set_text`, mode = `EventDefined`).
+  - **You must then set the call state, or the label will not update in the Editor.**
+    `AddPersistentListener` leaves the call at `UnityEventCallState.RuntimeOnly`, so the binding is
+    correct but dormant outside Play mode: switching locale in the Editor changes nothing, and it
+    stays that way through a save and reload. Fix it with the public
+    `UnityEventBase.SetPersistentListenerState`:
+    ```csharp
+    UnityEventTools.AddPersistentListener(lse.OnUpdateString, setText);
+    var index = lse.OnUpdateString.GetPersistentEventCount() - 1;
+    lse.OnUpdateString.SetPersistentListenerState(
+        index, UnityEngine.Events.UnityEventCallState.EditorAndRuntime);
+    ```
+    Verified on Unity 6000.5.8f1: without the second call the listener does not fire in Edit mode
+    even after a prefab save and reload; with it the call state becomes `EditorAndRuntime` and the
+    text updates immediately.
+  - Persistent listeners **MUST** point to a method on a `UnityEngine.Object`; lambdas will fail.
+  - **Then confirm the binding is live, don't assume it.** Wiring that looks right in the Inspector
+    but does nothing is the characteristic failure of this step. All of the read-back you need is
+    public API on the event, so none of this requires touching serialized fields:
+
+    | Check | Call | Expect |
+    |---|---|---|
+    | Something was wired | `GetPersistentEventCount()` | `> 0` |
+    | It points at the text component | `GetPersistentTarget(i)`, `GetPersistentMethodName(i)` | the component, `set_text` |
+    | It will fire while authoring | `GetPersistentListenerState(i)` | `EditorAndRuntime` |
+    | It actually updates the label | `lEvent.RefreshString()` | the text value changes |
+
+    Do all four. A count above zero only proves something was wired, and a `RuntimeOnly` call fails
+    the last check while being perfectly correct for a build, so reading the state is what tells a
+    dormant binding apart from a broken one. A component that was added and configured but never
+    fires is worse than an unlocalized label, because it reads as done.
 - **Initialization & Refresh**: 
     - `LocalizationEditorSettings.CreateStringTableCollection` expects a **directory path** (e.g., `Assets/Localization`), not a full asset path.
     - Always call `lEvent.RefreshString()` after assigning a `LocalizedString` reference programmatically to update the UI immediately.
