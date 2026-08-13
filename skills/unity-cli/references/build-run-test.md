@@ -120,13 +120,59 @@ UNITY_TEST_TIMEOUT=600 unity test /path/to/MyProject
 
 # Forward extra editor args after -- (reserved test flags are rejected)
 unity test /path/to/MyProject -- -nographics
+
+# Write a JUnit report for CI instead of NUnit: --output IS the JUnit file
+unity test /path/to/MyProject --report-format junit --output ./results/junit.xml
+
+# Write both from one editor run (JUnit defaults to <output>.junit.xml)
+unity test /path/to/MyProject --report-format nunit,junit
+unity test /path/to/MyProject --report-format nunit,junit --junit-output ./results/ci.xml
+
+# Collect code coverage (requires com.unity.testtools.codecoverage in the project)
+unity test /path/to/MyProject --coverage --coverage-output ./coverage
+unity test /path/to/MyProject --coverage --coverage-options "generateHtmlReport"
 ```
 
 `unity test` launches the editor's built-in test runner in batch mode (`-runTests -testPlatform <mode> -testResults <path> -testFilter <pattern>`), waits for it to finish, and writes the report to `--output` (default `test-results.xml`). It exits 0 when the run succeeds and 6 (EXIT_COMMAND_FAILURE) when the editor exits non-zero — i.e. reports test failures or fails to run. It runs the tests **directly via the editor command line** — no pipeline package or server is involved. `--mode` is optional; when omitted, `-testPlatform` is not passed and the editor runs its default platform.
 
-It deliberately does **not** pass `-quit`: `-runTests` quits the editor itself once results are written, so forcing `-quit` would terminate it before the report exists. Anything after `--` is forwarded to the editor verbatim, except reserved flags (`-projectPath`, `-batchmode`, `-runTests`, `-testPlatform`, `-testResults`, `-testFilter`, `-quit`, `-useHub`, `-hubIPC`), which are rejected — the first seven are managed by the command; `-useHub`/`-hubIPC` are deliberately never passed (the CLI runs no Hub IPC server).
+It deliberately does **not** pass `-quit`: `-runTests` quits the editor itself once results are written, so forcing `-quit` would terminate it before the report exists. Anything after `--` is forwarded to the editor verbatim, except reserved flags (`-projectPath`, `-batchmode`, `-runTests`, `-testPlatform`, `-testResults`, `-testFilter`, `-quit`, `-useHub`, `-hubIPC`, `-enableCodeCoverage`, `-coverageResultsPath`, `-coverageOptions`), which are rejected — those are managed by the command (use `--coverage` for the coverage trio); `-useHub`/`-hubIPC` are deliberately never passed (the CLI runs no Hub IPC server).
 
-Options: `--mode EditMode|PlayMode`, `--filter <pattern>`, `--output <path>`, `--editor-version <version>` (env `UNITY_EDITOR_VERSION`), `-e, --editor-path <path>`, `-a, --architecture <arch>`, `--allow-install`, `--timeout <seconds>` (env `UNITY_TEST_TIMEOUT`).
+#### Report formats (CI-native JUnit)
+
+The editor only ever writes NUnit3, so JUnit is produced by converting that report after the run. `--report-format` decides what `--output` contains:
+
+| `--report-format` | `--output` holds | Also written |
+|---|---|---|
+| `nunit` (default) | NUnit3 — today's behaviour, unchanged | — |
+| `junit` | JUnit | nothing (the editor's NUnit3 goes to a scratch file that is converted and removed) |
+| `nunit,junit` | NUnit3 | JUnit at `--junit-output`, defaulting to `--output` with the extension replaced by `.junit.xml` |
+
+`--junit-output` is only valid with `nunit,junit` — with `junit` alone the JUnit report *is* `--output`, so passing both is an error rather than a silent no-op. It also may not resolve to the same file as `--output` (case-insensitively on Windows): writing both reports to one path would overwrite the NUnit report with the JUnit one while still claiming two artifacts were produced.
+
+All of these flag-combination mistakes, and an unknown `--report-format` value, are usage errors and exit **2** (`EXIT_BAD_ARGS`) — not 6 — so a CI script can tell "I invoked the command wrongly" from "the operation failed". They are also checked before the project and editor are resolved, so a usage mistake reports itself rather than surfacing as a missing-editor error.
+
+**The JUnit report is written even when tests fail**, before the non-zero exit is surfaced — that is exactly when a CI system needs it to annotate the failures. A run whose results cannot be converted (a truncated report from an editor that died mid-write, say) fails the command and names the file it could not read.
+
+#### Code coverage
+
+`--coverage` drives Unity's [Code Coverage package](https://docs.unity3d.com/Packages/com.unity.testtools.codecoverage@latest) by passing `-enableCodeCoverage -coverageResultsPath <path>` (plus `-coverageOptions` when `--coverage-options` is given). `--coverage-output` defaults to `CodeCoverage` relative to the working directory.
+
+Coverage **degrades gracefully**: if the project does not depend on `com.unity.testtools.codecoverage` (checked in `Packages/manifest.json`, then `Packages/packages-lock.json`), the CLI prints a warning naming the missing package, skips the coverage flags, and runs the tests normally. It never fails the test run for a missing coverage package — `-enableCodeCoverage` on a project without it silently produces nothing, which is the confusing outcome this replaces. `--coverage-output` / `--coverage-options` without `--coverage` is an error.
+
+With `--format json` the envelope reports every artifact, so a pipeline can locate them without guessing:
+
+```json
+{
+  "projectPath": "/path/to/MyProject",
+  "output": "/path/to/results.xml",
+  "reports": { "nunit": "/path/to/results.xml", "junit": "/path/to/results.junit.xml" },
+  "coverage": { "requested": true, "enabled": true, "output": "/path/to/coverage" }
+}
+```
+
+`reports.junit` is `null` when JUnit was not requested, `reports.nunit` is `null` when only JUnit was. `coverage.requested` with `enabled: false` is the missing-package case.
+
+Options: `--mode EditMode|PlayMode`, `--filter <pattern>`, `--output <path>`, `--report-format nunit|junit|nunit,junit`, `--junit-output <path>`, `--coverage`, `--coverage-output <path>`, `--coverage-options <options>`, `--editor-version <version>` (env `UNITY_EDITOR_VERSION`), `-e, --editor-path <path>`, `-a, --architecture <arch>`, `--allow-install`, `--timeout <seconds>` (env `UNITY_TEST_TIMEOUT`).
 
 ---
 
