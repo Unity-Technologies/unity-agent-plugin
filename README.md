@@ -96,6 +96,8 @@ explicitly instead of describing the task.
 
 | Skill | |
 |---|---|
+| `new-unity-project` | Guided flow from an idea to a running, version-controlled project: gathers concept, platforms and monetization, then delegates setup |
+| `unity-package-management` | Add, remove, upgrade or discover Unity (UPM) packages, and choose packages by genre, platform or monetization |
 | `2d-pixel-perfect` | Pixel-perfect 2D rendering — pipeline detection, filter modes, camera setup, reference resolution |
 | `manage-sprite-atlas` | Sprite atlases via a prebuild pipeline — master and variant atlases, packing and platform settings |
 | `tilemap-palette-create` | Tile Palette assets for rectangular, hexagonal, or isometric grids |
@@ -111,6 +113,7 @@ explicitly instead of describing the task.
 | `ui-uitk` | UI Toolkit — UXML and USS authoring, flex layout, custom elements, Painter2D, runtime binding |
 | `ui-ugui` | uGUI — Canvas hierarchies, RectTransform anchoring, Layout Groups, prefab UI |
 | `ui-imgui` | IMGUI editor tooling — EditorWindows, custom Inspectors, PropertyDrawers |
+| `optimize-web` | Shrink and speed up WebGL/WebGPU builds — compression, stripping, memory, frame rate, KTX textures |
 | `optimize-text-mesh-pro` | TextMeshPro font stacks, dynamic atlases, SDF quality, CJK fallback, text memory |
 | `localization` | Unity Localization — locales, String and Asset Tables, CJK fonts, Addressables |
 
