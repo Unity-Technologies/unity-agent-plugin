@@ -27,7 +27,13 @@ public static class L10nBatchProcessor
     public static List<string> LocalizeAll(Dictionary<string, string> mapping, string table)
     {
         var unmatched = new List<string>();
-        string[] scenes = AssetDatabase.FindAssets("t:Scene");
+
+        // Scope the search to Assets/. An unscoped FindAssets searches the whole project INCLUDING
+        // read-only packages, so it returns package test scenes and this loop then tries to open,
+        // dirty and save assets it must not touch. Measured on a real project: unscoped found 20
+        // scenes where the project has 1, and all 19 extras were inside read-only packages
+        // (com.unity.addressables test fixtures).
+        string[] scenes = AssetDatabase.FindAssets("t:Scene", new[] { "Assets" });
         foreach (var guid in scenes)
         {
             var path = AssetDatabase.GUIDToAssetPath(guid);

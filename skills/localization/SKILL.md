@@ -30,7 +30,10 @@ will fail silently or throw confusing errors if the package isn't present.
 
 ## 1. Localization Settings & Locales
 If `LocalizationEditorSettings.ActiveLocalizationSettings` is null, you must find or create it:
-1. **Find:** Use `AssetDatabase.FindAssets("t:LocalizationSettings")`. If found, load the first one and assign it to `LocalizationEditorSettings.ActiveLocalizationSettings`.
+1. **Find:** Use `AssetDatabase.FindAssets("t:LocalizationSettings", new[] { "Assets" })`. If found, load the first one and assign it to `LocalizationEditorSettings.ActiveLocalizationSettings`.
+   - **Always pass the search folders.** An unscoped `FindAssets` searches the whole project including
+     read-only packages, so it can return an asset from a package and you end up pointing the project
+     at something you cannot edit. This applies to every `FindAssets` call in this skill.
 2. **Create:** If not found, create a new instance and save it to `Assets/Localization/LocalizationSettings.asset`. Use `ScriptableObject.CreateInstance<LocalizationSettings>()` followed by `AssetDatabase.CreateAsset()`.
 3. **Activate:** Set `LocalizationEditorSettings.ActiveLocalizationSettings = settings`.
 4. **Locales:** Ensure locales (en, fr, de, etc.) exist. Create them if missing and add them to settings using `LocalizationEditorSettings.AddLocale(locale)`.
