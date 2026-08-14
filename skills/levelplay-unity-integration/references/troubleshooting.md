@@ -25,8 +25,8 @@ integration yet, begin with Step 1: Verify Environment.
 
 **Solutions:**
 1. Stop providing code immediately
-2. Ask: "Can you confirm the Ads Mediation package is installed? Check Window > Package Manager and verify 'Ads Mediation' appears under 'Packages: In Project'"
-3. If not installed, direct to Step 3 to install via Unity Package Manager
+2. Read `Packages/packages-lock.json` and look for `com.unity.services.levelplay` (the package id behind the **Ads Mediation** display name). Answer this from the project, not by asking the user to read the Package Manager window: it is the same question, and reading it is both faster and reliable.
+3. If the id is absent, the package is not installed. Direct to Step 3 to install via Unity Package Manager
 4. Have them restart Unity Editor after installation (important!)
 5. Verify installation by checking that `using Unity.Services.LevelPlay;` no longer shows errors
 6. Only resume code generation after confirmation and verification
