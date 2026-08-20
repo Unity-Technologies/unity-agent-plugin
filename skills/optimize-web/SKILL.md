@@ -90,6 +90,28 @@ UnityEditor.EditorApplication.ExecuteMenuItem("Tools/Apply Web Release Settings"
 Keep its `using` directives; they are correct in a file. For one-off changes — a single quality
 level, a frame-rate flip — an inline `eval` statement is fine.
 
+### Verify from disk, not from the objects you just wrote
+
+**Applying a setting and reading it back in the same session proves nothing.** Player Settings are
+in-memory objects until something saves them, so every read-back returns the value you just
+assigned whether or not it ever reached
+`ProjectSettings/ProjectSettings.asset`. A run that skips the save reports success, and when the
+Editor session ends the whole change is gone. This was observed, not theorised: a run applied
+everything, read back Brotli / High / None, said it was done, and the file on disk never changed.
+
+So after any write:
+
+1. **Save.** `UnityEditor.AssetDatabase.SaveAssets()`. `WebOptimizer.cs` now does this itself; an
+   inline `eval` write has to do it explicitly.
+2. **Read the values back and report them.** Not "applied successfully" but the actual values, so the
+   user can see what is stored. `WebOptimizer.cs` logs all nine.
+3. **For anything per-build-target, name the target you read.** Several of these settings exist once
+   per target, so a value can be correct for one target and unset for the one being built.
+
+The same trap exists on the file-editing route in reverse: a hand-edited
+`ProjectSettings.asset` reads back fine while the running Editor and the build still use the old
+value. Verifying after a save and a reimport is what catches both.
+
 ## 0. Pre-Flight
 
 1. **Confirm Web build target:** Read, with the Pre-Flight snippet above, `EditorUserBuildSettings.activeBuildTarget` — must be `WebGL`; if not, warn the user.
