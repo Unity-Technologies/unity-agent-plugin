@@ -27,6 +27,10 @@ public class WebOptimizer
 
         // Read back from the settings after saving and report what was actually stored. Assigning
         // a property and assuming it took is the failure this method exists to demonstrate.
+        // Eight of the nine land in ProjectSettings/ProjectSettings.asset. codeOptimization is the
+        // exception: it persists to Library/EditorUserBuildSettings.asset, which is gitignored, so
+        // it is per-machine and absent from the project file even on success. Verify that one
+        // through this log, not by grepping ProjectSettings.asset, and re-apply it in CI.
         Debug.Log(
             "Web release settings applied and saved:\n"
             + $"  il2cppCodeGeneration = {PlayerSettings.GetIl2CppCodeGeneration(target)}\n"

@@ -75,6 +75,14 @@ return string.Join("\n", w);
 installed. Read it in a separate call from the rest, and treat a resolution failure as "the Web
 module isn't installed" rather than as a bad snippet.
 
+**`codeOptimization` is the one setting here that does not live in the project file.** It persists to
+`Library/EditorUserBuildSettings.asset`, and `Library/` is gitignored by every standard Unity
+`.gitignore`, so this value is per-machine and does not travel: teammates and CI do not inherit it.
+Two consequences. Read it back through the API and do not look for it in
+`ProjectSettings/ProjectSettings.asset` — it is absent there even on a successful apply, so its
+absence is not a failure. And if the release build runs in CI, apply it there as a build step rather
+than assuming the repository carries it.
+
 ### Applying the settings
 
 Most of the writes in this skill are a single batch, and
@@ -111,6 +119,12 @@ So after any write:
 The same trap exists on the file-editing route in reverse: a hand-edited
 `ProjectSettings.asset` reads back fine while the running Editor and the build still use the old
 value. Verifying after a save and a reimport is what catches both.
+
+**Do not try to reproduce this in batch mode.** A batch Editor invoked with `-quit` saves settings on
+exit, so an unsaved write persists anyway and the run looks correct. Both a saving and a non-saving
+version of the script pass under `-quit`. The bug only appears in a live Editor session, which is
+where it was found. Concluding from a green batch run that the save is unnecessary is the wrong
+conclusion from a test that cannot see the defect.
 
 ## 0. Pre-Flight
 
