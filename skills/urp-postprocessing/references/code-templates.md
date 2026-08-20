@@ -67,9 +67,13 @@ return $"Post-processing enabled on '{cam.name}'. Scene '{scene.name}' is modifi
      + "Save it, or the change is lost when the Editor session ends.";
 ```
 
-To save it for the user instead of asking, call
-`UnityEditor.SceneManagement.EditorSceneManager.SaveScene(scene)`. Prefer reporting first: a save
-also commits whatever else the user had in progress in that scene.
+The right choice depends on whether anyone is watching:
+
+- **Interactive run** (the user is at the Editor): report and let them save. A save from here also
+  commits whatever else they had in progress in that scene, which is not yours to decide.
+- **Non-interactive run** (batch, CI, or a session that is about to end): call
+  `UnityEditor.SceneManagement.EditorSceneManager.SaveScene(scene)` and say that you saved it.
+  Nobody is there to act on a "scene is unsaved" report, so leaving it unsaved just loses the work.
 
 ### Modifying an Existing Volume Profile
 
