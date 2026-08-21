@@ -786,6 +786,8 @@ IEnumerator InitializeAfterOnboarding()
 
 ## Migration from IronSource.* APIs
 
+> **Full migration guide:** for SDK upgrade paths, per-format ad unit API migration, the migration completeness checklist, Unity Ads migration, and Maven Central build failures, see `references/migration-sdk-9.md`. The summary below covers initialization only.
+
 If you're migrating from deprecated IronSource APIs:
 
 **Old (Deprecated):**
