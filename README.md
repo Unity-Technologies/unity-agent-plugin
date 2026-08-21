@@ -7,7 +7,8 @@ Available for **Claude Code**, **Codex**, and **Grok**.
 
 ## Install
 
-**Claude Code**
+**Claude Code** — these two are slash commands, so type them inside a Claude Code
+session rather than in a terminal:
 
 ```
 /plugin marketplace add Unity-Technologies/unity-agent-plugin
@@ -15,6 +16,14 @@ Available for **Claude Code**, **Codex**, and **Grok**.
 
 ```
 /plugin install unity@unity-agent-plugin
+```
+
+From a terminal instead, use the `claude` CLI. Installs done this way load the next
+time you start Claude Code, or when you run `/reload-plugins` in an open session:
+
+```bash
+claude plugin marketplace add Unity-Technologies/unity-agent-plugin
+claude plugin install unity@unity-agent-plugin
 ```
 
 **Codex**
