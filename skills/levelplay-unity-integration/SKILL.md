@@ -18,6 +18,14 @@ LevelPlay is Unity's ad mediation platform: it connects your game to multiple ad
 
 ## Integration Workflow
 
+### 0. New Integration or Migration?
+
+Ask: "Are you starting a new LevelPlay integration, migrating an existing one (from an older SDK version or from Unity Ads), or troubleshooting an existing setup?"
+
+- **New integration**: proceed to Step 1.
+- **Migration** (SDK upgrade, replacing IronSource.Agent APIs, migrating from Unity Ads, or fixing a Maven Central Android build failure): Read `references/migration-sdk-9.md`. Ask which of the five scenarios applies — A = SDK upgrade, B = init API migration, C = ad unit API migration, D = Maven Central build failure, E = Unity Ads migration — then follow the matching scenario. After applying all code changes, work through the Migration Completeness Checklist (section C5 of the reference) — it catches requirements that a line-by-line translation misses because the legacy code had no equivalent line. Then ask the user to check the Unity console for compilation errors, and fix any that appear before presenting results. Do not block or keep retrying if you cannot see the console: list the files you changed, say what to look for, and continue.
+- **Troubleshooting or adding to an existing setup** (ATT, GDPR, ILRD, Test Suite, build errors on a fresh integration, or adding a feature to an already-working integration): Identify what the user needs and go directly to the relevant step or reference from "When to Read Detailed References."
+
 ### 1. Verify Unity Environment
 
 Check that the user is working in a Unity project by verifying Assets/ and ProjectSettings/ directories exist. If not in a Unity project, instruct the user to navigate to their Unity project directory. If those directories are not found but the user believes they are in the right place, ask: "It looks like you may not be at your project root — can you navigate to the top-level folder of your Unity project and confirm you can see Assets/ and ProjectSettings/ there?"
@@ -257,7 +265,7 @@ The next step asks which ad formats to implement from this priority list. If the
 
 ### 9. Implement Ad Units
 
-**Read `references/best-practices.md` first** — its "Code Generation Guidelines (Step 9)" section carries the general ad lifecycle, the per-organization-approach code-gen rules, the always-include requirements (MonoBehaviour, `DestroyAd()` in `OnDestroy()`, event unsubscription, null checks, error handling), and the bid-floor wiring examples. Incorporate those patterns into all ad implementations.
+**Read `references/best-practices.md` first** — its "Code Generation Guidelines (Step 9)" section carries the general ad lifecycle, the per-organization-approach code-gen rules, the always-include requirements (MonoBehaviour, `DestroyAd()` in `OnDestroy()`, the placement-capping show-path check (when placements are used), event unsubscription, null checks, error handling), and the bid-floor wiring examples. Incorporate those patterns into all ad implementations.
 
 **Implementation checkpoint:**
 
@@ -306,7 +314,7 @@ Reply with values per format, or just say 'skip' — you can add them any time."
 - Ask: "Please share your existing ad manager code for review" and wait for it.
 - Analyze the implementation: whether they use the current LevelPlay Ad Unit API (LevelPlayRewardedAd, LevelPlayInterstitialAd, LevelPlayBannerAd), whether they use **deprecated IronSource.Agent APIs**, proper callback registration/unsubscription, and missing error handling or memory leaks.
 - Provide specific guidance:
-  - If using deprecated APIs: "You're using the old IronSource.Agent API. Here's how to migrate to the new LevelPlay Ad Unit API:" (migration detail in `references/initialization-api.md` "Migration from IronSource.* APIs" and the per-format references)
+  - If using deprecated APIs: "You're using the old IronSource.Agent API. Here's how to migrate to the new LevelPlay Ad Unit API:" (full migration detail in `references/migration-sdk-9.md` — Scenario B for init, Scenario C per ad format including the C5 completeness checklist)
   - If using current APIs with issues: "Your implementation looks good but I noticed [specific issues]. Here's how to fix them:"
   - If implementation is correct: "Your implementation looks solid. Which additional ad formats would you like to add?"
 - Offer fixes as code snippets or suggest refactoring. When adding new formats after review, present the bid floor prompt scoped to those new formats only, confirm whether to match their existing organization pattern or use a new one, then follow the same guidelines as Options 1–3.
@@ -388,6 +396,7 @@ If the user reports a problem, route to the matching issue in `references/troubl
 | Ads not loading | SDK not initialized, wrong App Key, ad created before init, or no connectivity | Confirm `OnInitSuccess` fires before creating ads; check App Key; test on device. See troubleshooting.md. |
 | Callbacks not firing | Events registered after init, missing subscriptions, or script destroyed | Register callbacks before `Init()`; verify subscriptions; use a persistent GameObject. See troubleshooting.md. |
 | Platform-specific build errors (iOS SKAdNetwork/ATT/frameworks; Android Play Services/manifest/gradle) | Platform setup incomplete | See troubleshooting.md and `references/ios-setup.md`. |
+| Android build fails resolving `com.ironsource.sdk` dependencies from `android-sdk.is.com` (worked before; nothing changed) | Dependencies moved to Maven Central; the old is.com repository was shut down | Follow Scenario D in `references/migration-sdk-9.md`: delete the stale dependency XMLs, reinstall via Network Manager, verify no is.com references remain. |
 
 ## When to Read Detailed References
 
@@ -402,6 +411,7 @@ Read specific references based on what the user is doing:
 - **`references/ilrd-api.md`**: Wiring ILRD to an analytics platform
 - **`references/testing-and-validation.md`**: Mock ads and the Test Suite (Step 10)
 - **`references/troubleshooting.md`**: Compile/build errors, ads not loading, callbacks not firing
+- **`references/migration-sdk-9.md`**: Migrating from IronSource or older LevelPlay APIs, upgrading the SDK to 9.x.x, migrating from Unity Ads, or Maven Central dependency build failures (Step 0)
 
 ## Examples
 

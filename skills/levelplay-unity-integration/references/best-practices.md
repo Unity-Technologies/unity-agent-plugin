@@ -570,6 +570,7 @@ guidance. This allows you to provide targeted fixes rather than generating new c
 - All manager classes must inherit from `MonoBehaviour` — required for Unity lifecycle methods (`Start()`, `OnDestroy()`) and to attach the script to a GameObject
 - After generating any manager script, instruct the user to attach it to a persistent GameObject in their scene (the same one as the initializer, with `DontDestroyOnLoad`)
 - For banner and interstitial managers, call `DestroyAd()` in `OnDestroy()` so ads are destroyed and memory is freed when the manager is destroyed
+- Rewarded and interstitial show paths check `IsAdReady()` before `ShowAd()`. If the game uses dashboard placements, also check the static `IsPlacementCapped(placementName)` — capping is configured per placement in the LevelPlay dashboard, and showing a capped placement fails (error codes 524/526)
 - Proper event subscription and unsubscription (to avoid memory leaks)
 - Null checks and defensive programming
 - Debug logs for troubleshooting
