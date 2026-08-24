@@ -1,7 +1,18 @@
 {
   "name": "unity",
   "version": "0.1.1-beta",
-  "description": "Unity's official plugin for Claude Code, with curated skills for game development, monetization, and performance optimization.",
+  "description": "Unity's official plugin for coding agents, with curated skills for game development, monetization, and performance optimization.",
+  "mcpServers": {
+    "unity": {
+      "command": "unity",
+      "args": [
+        "mcp"
+      ],
+      "env": {
+        "UNITY_CLI_CALLER": "plugin"
+      }
+    }
+  },
   "author": {
     "name": "Unity Technologies",
     "url": "https://unity.com"
