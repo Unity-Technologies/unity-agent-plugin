@@ -43,25 +43,7 @@ grok plugin install Unity-Technologies/unity-agent-plugin --trust
 ```
 
 Grok asks for explicit trust before it installs anything from a repository. This
-plugin ships skills and one MCP server, and no hooks.
-
-## Controlling a running Editor
-
-The plugin declares Unity's MCP server, so once it's installed your agent can also
-drive an open Unity Editor directly: create and modify GameObjects, edit scenes and
-assets, inspect the hierarchy, run tests, and capture views. The server finds a
-running Editor on its own, with no configuration.
-
-This needs the `unity` CLI on your `PATH` and the project's `com.unity.pipeline`
-package installed. The `unity-cli` skill covers both. Without them the skills still
-work; only the live-Editor tools are unavailable.
-
-Claude Code and Grok pick this up from the plugin. Codex configures MCP servers
-itself, so add it there with:
-
-```bash
-codex mcp add unity -- unity mcp
-```
+plugin ships skills only — no hooks and no MCP servers.
 
 ### Verify it worked
 
