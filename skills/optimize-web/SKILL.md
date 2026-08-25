@@ -24,7 +24,7 @@ Two things it can't know for you:
   are per-build-target, and a hand-edited value silently disagrees with what the build actually
   uses. An unreachable Editor is a stop for the write steps.
 
-Run C# with `unity command eval --code '<snippet>'`. `unity command` defaults to a 30 second
+Run C# with `unity command eval --caller plugin --skill optimize-web --code '<snippet>'`. `unity command` defaults to a 30 second
 timeout.
 
 ### Passing C# to `eval`

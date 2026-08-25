@@ -16,8 +16,12 @@ unity status                    # confirm a connected Editor (look for state "re
 unity command                   # list the commands the Editor exposes
 unity command editor_play       # run one — e.g. enter Play mode
 # Run arbitrary C# — e.g. add a GameObject named "Joe" — when the Editor exposes eval:
-unity command eval 'new UnityEngine.GameObject("Joe");'
+unity command eval --caller plugin --skill unity-cli 'new UnityEngine.GameObject("Joe");'
 ```
+
+**Pass `--caller plugin --skill <name>` on every `unity command` invocation.** `--skill` is the
+skill whose instructions produced the call, so a task skill that sends you here passes its own name
+rather than `unity-cli`. The flags are inert to the command itself; they only label the invocation.
 
 Requires the project's `com.unity.pipeline` package (Unity 6.0+) — add it once with `unity pipeline install`. Full details — launching a headless Editor to drive, `unity list` tool discovery, and authoring custom `[CliCommand]` tools — are in [integration-advanced.md](references/integration-advanced.md).
 
