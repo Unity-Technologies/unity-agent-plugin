@@ -1,6 +1,6 @@
 {
   "name": "unity",
-  "version": "0.1.1-beta",
+  "version": "0.1.2-beta",
   "description": "Unity's official plugin for coding agents, with curated skills for game development, monetization, and performance optimization.",
   "author": {
     "name": "Unity Technologies",
