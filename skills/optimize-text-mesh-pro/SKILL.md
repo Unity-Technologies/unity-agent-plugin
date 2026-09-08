@@ -1,4 +1,5 @@
 ---
+name: optimize-text-mesh-pro
 description: >
   Covers TextMeshPro font stacks, dynamic fallback atlases, padding and
   sampling ratios, SDF16, AutoSize discipline, worldspace vs UGUI, and Memory

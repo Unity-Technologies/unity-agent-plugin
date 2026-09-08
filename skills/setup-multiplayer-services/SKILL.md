@@ -1,4 +1,5 @@
 ---
+name: setup-multiplayer-services
 description: >-
   Guides the development of online multiplayer experiences where players connect, group, and interact in real-time using Unity Multiplayer Services.
   Use when the user asks for topology choice, player grouping, hosting, matchmaking, discovery, network setup,
