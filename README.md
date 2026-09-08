@@ -7,7 +7,8 @@ Available for **Claude Code**, **Codex**, and **Grok**.
 
 ## Install
 
-**Claude Code**
+**Claude Code** — these two are slash commands, so type them inside a Claude Code
+session rather than in a terminal:
 
 ```
 /plugin marketplace add Unity-Technologies/unity-agent-plugin
@@ -15,6 +16,14 @@ Available for **Claude Code**, **Codex**, and **Grok**.
 
 ```
 /plugin install unity@unity-agent-plugin
+```
+
+From a terminal instead, use the `claude` CLI. Installs done this way load the next
+time you start Claude Code, or when you run `/reload-plugins` in an open session:
+
+```bash
+claude plugin marketplace add Unity-Technologies/unity-agent-plugin
+claude plugin install unity@unity-agent-plugin
 ```
 
 **Codex**
@@ -83,61 +92,10 @@ do something in your Unity project. For example:
 >
 > "Chinese characters show up as empty boxes in my TextMeshPro labels"
 >
-> "Set up gamepad and keyboard controls for my player"
->
 > "Review my ScriptableRendererFeature for Render Graph problems"
 
 In Claude Code and Grok the skills also appear in the slash menu, so you can pick one
 explicitly instead of describing the task.
-
-## Available skills
-
-**2D and tilemaps**
-
-| Skill | |
-|---|---|
-| `2d-pixel-perfect` | Pixel-perfect 2D rendering — pipeline detection, filter modes, camera setup, reference resolution |
-| `manage-sprite-atlas` | Sprite atlases via a prebuild pipeline — master and variant atlases, packing and platform settings |
-| `tilemap-palette-create` | Tile Palette assets for rectangular, hexagonal, or isometric grids |
-| `tilemap-ruletile-createempty` | Blank RuleTile, HexagonalRuleTile, or IsometricRuleTile |
-| `tilemap-ruletile-createfromsegment` | RuleTile tiling rules built from your terrain sprites |
-| `sprite-segment-3x3grid` | Analyzes a sprite into a 3×3 colour-match pattern |
-
-**UI, text, and localization**
-
-| Skill | |
-|---|---|
-| `ui` | Detects which UI system your project uses and routes to the right one below |
-| `ui-uitk` | UI Toolkit — UXML and USS authoring, flex layout, custom elements, Painter2D, runtime binding |
-| `ui-ugui` | uGUI — Canvas hierarchies, RectTransform anchoring, Layout Groups, prefab UI |
-| `ui-imgui` | IMGUI editor tooling — EditorWindows, custom Inspectors, PropertyDrawers |
-| `optimize-text-mesh-pro` | TextMeshPro font stacks, dynamic atlases, SDF quality, CJK fallback, text memory |
-| `localization` | Unity Localization — locales, String and Asset Tables, CJK fonts, Addressables |
-
-**Monetization and live services**
-
-| Skill | |
-|---|---|
-| `implement-in-app-purchases` | Unity IAP — catalogs, subscriptions, receipt validation, store extensions, D2C, migrating from other billing SDKs |
-| `levelplay-unity-integration` | LevelPlay ad mediation — SDK install, dependency resolution, rewarded, interstitial and banner, privacy, ILRD |
-| `build-live-game` | Unity Services backends — cloud save, cloud code, remote config, leaderboards, economy, player accounts |
-| `setup-multiplayer-services` | Multiplayer topology, sessions, lobbies, matchmaking, discovery |
-
-**Rendering and shaders**
-
-| Skill | |
-|---|---|
-| `validate-urp-render-graph-renderer-feature` | Reviews a Unity 6+ URP `ScriptableRendererFeature` built on Render Graph |
-| `shader-graph-create-custom-node` | Custom Shader Graph nodes from HLSL |
-
-**Input, audio, and platform**
-
-| Skill | |
-|---|---|
-| `setup-game-inputs` | Input System — action maps, bindings, control schemes, rebinding |
-| `setup-audiorandomcontainer` | AudioRandomContainer assets for randomized playback |
-| `android-add-adaptive-performance` | Android thermal and power signals mapped to dynamic quality tiers |
-| `asset-transformer-toolkit` | 3D model and point-cloud import, RuleSets and Actions, LOD generation |
 
 ## Works with
 
