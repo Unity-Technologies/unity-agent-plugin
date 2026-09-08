@@ -229,8 +229,8 @@ case "$(uname)" in
   Darwin) if [ -d "$ED/Unity.app" ]; then UNITY_BIN="$ED/Unity.app/Contents/MacOS/Unity";
           elif [[ "$ED" == *.app ]]; then UNITY_BIN="$ED/Contents/MacOS/Unity";
           else UNITY_BIN="$ED/Unity"; fi ;;
-  Linux)  UNITY_BIN="$ED/Unity" ;;
-  *)      UNITY_BIN="$ED/Unity.exe" ;;   # Windows (Git Bash / MSYS); use Unity.exe in PowerShell
+  Linux)  UNITY_BIN="$ED/Editor/Unity" ;;
+  *)      UNITY_BIN="$ED/Editor/Unity.exe" ;;   # Windows (Git Bash / MSYS); use Editor\Unity.exe in PowerShell
 esac
 
 "$UNITY_BIN" -batchmode -projectPath "$PROJECT" -executeMethod "$METHOD" -logFile -
