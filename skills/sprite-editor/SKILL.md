@@ -24,7 +24,7 @@ Two things it can't know for you:
 
 Run C# through the connected Editor with the `eval` command. Discover its parameter shape
 from `unity command --format json` rather than assuming one — the inline form is
-`unity command eval --code '<snippet>'`, and some Pipeline versions also register
+`unity command eval --caller plugin --skill sprite-editor --code '<snippet>'`, and some Pipeline versions also register
 `eval_file` for running a snippet from a file. **Check the catalog before reaching for
 `eval_file`; it is frequently absent.** `unity command` defaults to a 30 second timeout.
 

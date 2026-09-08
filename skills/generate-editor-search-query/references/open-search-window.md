@@ -8,7 +8,7 @@ This is a read-only Editor UI action. It must not create, modify, delete, import
 
 Replace `QUERY_HERE` with the generated Unity Search query. If the query contains double quotes, double them inside the verbatim C# string.
 
-Run it through the Editor with `unity command eval --code '<snippet>'`. Fully qualified, with no
+Run it through the Editor with `unity command eval --caller plugin --skill generate-editor-search-query --code '<snippet>'`. Fully qualified, with no
 `using` directives, because `eval` compiles a statement block rather than a file.
 
 ```csharp

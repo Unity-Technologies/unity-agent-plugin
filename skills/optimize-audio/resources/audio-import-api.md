@@ -1,6 +1,6 @@
 # Audio Import API Recipes
 
-C# code recipes for `unity command eval --code '<snippet>'`. All examples target the Unity 6
+C# code recipes for `unity command eval --caller plugin --skill optimize-audio --code '<snippet>'`. All examples target the Unity 6
 AudioImporter API.
 
 `eval` compiles a statement block, so there are no `using` directives and every type is written

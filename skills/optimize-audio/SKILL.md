@@ -26,7 +26,7 @@ Two things it can't know for you:
   through `SaveAndReimport()` in a live Editor, so an unreachable Editor is a stop, not a cue to
   edit metadata directly.
 
-Run C# with `unity command eval --code '<snippet>'`. Discover the parameter shape from
+Run C# with `unity command eval --caller plugin --skill optimize-audio --code '<snippet>'`. Discover the parameter shape from
 `unity command --format json` rather than assuming one. `unity command` defaults to a 30 second
 timeout.
 
