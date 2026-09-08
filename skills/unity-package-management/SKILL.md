@@ -42,7 +42,7 @@ back on the Editor's main-loop pump, so a blocking `while (!req.IsCompleted)` bu
 deadlocks it). The Editor must **stay alive** after `-executeMethod` returns, until the request
 finishes.
 
-`unity run` **cannot** be used for the installer: it always injects `-quit` (see the reserved
+`unity run` **cannot** be used for the installer: its default path injects `-quit` (see the reserved
 flags in the **`unity-cli`** skill). With `-quit`, the Editor quits the instant the method
 returns — before UPM resolves — so packages never install and the callback never runs.
 
