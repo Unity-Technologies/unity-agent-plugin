@@ -1,4 +1,5 @@
 ---
+name: ui-uitk
 description: Unity UI Toolkit expert for Unity 6.0+. Understands, edits, and generates UXML and USS files with flex-based layouts. Use for requests involving .uxml, .uss, UI Toolkit, UIElements, UIDocument, UI runtime binding, Custom UI Elements, Manipulators or PanelSettings.
 ---
 
