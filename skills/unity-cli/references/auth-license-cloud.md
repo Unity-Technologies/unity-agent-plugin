@@ -30,9 +30,46 @@ unity auth login --client-id <id> --secret-from-stdin --no-store
 # Logout (clears both service-account and OAuth credential slots)
 unity auth logout
 
+# Log a specific stored account out, rather than the active one
+unity auth logout user@example.com
+
 # Skip the confirmation prompt
 unity auth logout --yes
 ```
+
+#### Multiple accounts
+
+The CLI stores more than one signed-in account and keeps one of them *active*. `unity auth login` adds an account; these three manage the set.
+
+```bash
+# List stored accounts; "*" marks the active one
+unity auth list
+unity auth ls              # alias
+unity auth list --format json
+
+# Make a stored account active (by email or id) — no browser round-trip
+unity auth switch user@example.com
+
+# Show the account a project uses for cloud commands
+unity auth default
+
+# Pin this project to an account, regardless of which one is active
+unity auth default user@example.com
+
+# Target a project other than the current directory
+unity auth default user@example.com --project ./MyGame
+
+# Remove the pin; the project follows the active account again
+unity auth default --clear
+```
+
+Three behaviors worth knowing before scripting these:
+
+- **A project pin beats the active account.** If a project has a default set, commands run inside it keep using that account even after `unity auth switch` — the switch reports this rather than failing silently. Use `auth default --clear` to hand the project back to the active account.
+- **Service-account credentials outrank both.** When `UNITY_SERVICE_ACCOUNT_ID` / `UNITY_SERVICE_ACCOUNT_SECRET` are set (or a service account is signed in), they take precedence over every stored account and `auth switch` says so instead of appearing to work. Unset them, or `unity auth logout`, before switching.
+- **`auth switch` is ambiguity-aware.** Given a string matching several stored accounts it fails rather than guessing, and under `--format json` carries the candidates in `data.candidates` so a script can disambiguate. Pass the full email or the account id.
+
+`unity auth default` resolves the project from the current directory unless `--project` is given, and errors if that path isn't a Unity project. Passing both an account and `--clear` is rejected.
 
 **Separate sign-in from Hub.** As of `0.1.0-beta.8`, the CLI and the GUI Hub store their sign-in credentials **separately** — signing in to one no longer signs you out of (or overwrites the account of) the other, so each can stay signed in as a different account. (In earlier betas they shared a single keyring session.)
 
@@ -97,11 +134,29 @@ unity cloud org set-default <id-or-name>      # set active default org
 unity cloud org clear-default                 # revert to "All Organizations"
 
 # Projects in the active organization
-unity cloud project list --format json
+unity cloud project list --format json               # * marks the active default project
+
+# Default project, stored per organization
+unity cloud project current                          # print the active default project id
+unity cloud project set-default <id-or-name>         # project UUID, Genesis id, or exact name
+unity cloud project clear-default                     # drop this organization's default
 
 # Override the active organization for a single call
 unity cloud project list --cloud-org <id-or-name>   # also via UNITY_CLOUD_ORG env var
 ```
+
+**The default project is per organization.** `set-default` stores the project's UUID against the
+active organization's Genesis id, so switching your active organization switches which default
+applies, and `clear-default` only drops the active organization's. `cloud project current` and
+`clear-default` read and write the settings file directly, so they need no network and no session
+when the organization comes from your stored default; passing `--cloud-org <name>` needs a lookup,
+so that path requires a session like the rest.
+
+**What consumes it.** Commands that need a Unity Cloud project but were not given one fall back to
+the stored default. The order is the explicit flag (`--project-id`), then `UNITY_CLOUD_PROJECT`,
+then the cloud link in the project directory's `ProjectSettings/PlayerSettings.asset`, then the
+stored default, so inside a cloud-linked project the link still wins. `unity collaboration` and
+the `cloud-pipeline` preview family both use this chain.
 
 **Exit codes.** The `cloud` and `auth` commands map an authentication failure (expired or missing session, rejected sign-in) to `3`, and any other operational failure (network, server error) to `6` — so scripts can distinguish "sign in again" from a genuine command failure. `unity auth status` / `logout` follow the same convention.
 
