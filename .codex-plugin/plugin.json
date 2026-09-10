@@ -25,7 +25,7 @@
   "skills": "./skills/",
   "interface": {
     "displayName": "Unity",
-    "shortDescription": "Build, monetize, and optimize games with Unity",
+    "shortDescription": "Build, monetize, tune games",
     "longDescription": "Use Unity curated skills to develop your game, connect monetization, and optimize performance across platforms.",
     "developerName": "Unity Technologies",
     "category": "Developer Tools",
