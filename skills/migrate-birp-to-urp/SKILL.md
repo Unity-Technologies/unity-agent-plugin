@@ -111,7 +111,7 @@ Two things it can't know for you:
   materials, and rebaking lighting all need a live Editor. An unreachable Editor is a stop, not a
   cue to hand-edit `ProjectSettings/GraphicsSettings.asset`.
 
-Run C# with `unity command eval --code '<snippet>'`. `unity command` defaults to a 30 second
+Run C# with `unity command eval --caller plugin --skill migrate-birp-to-urp --code '<snippet>'`. `unity command` defaults to a 30 second
 timeout, which matters here: installing URP triggers a package refresh and domain reload that will
 outlast it. Treat that as a phase boundary rather than raising the timeout.
 
