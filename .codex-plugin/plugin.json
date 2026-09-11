@@ -23,6 +23,7 @@
     "shader-graph"
   ],
   "skills": "./skills/",
+  "requires_local_executor": true,
   "interface": {
     "displayName": "Unity",
     "shortDescription": "Build, monetize, tune games",
