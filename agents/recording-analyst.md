@@ -15,14 +15,12 @@ Only these, always with `--project-path <project>`:
 
 - `unity command polyspatial_annotation_show --ref "<ref>" [--window N]` — resolve a reference: text,
   frame, entity path, state at that frame, changes around it.
-- `unity command polyspatial_annotation_list`.
-- `unity command eval_file --file <script.cs> --timeout 120` running a read-only `SceneStateQuery` over
-  `PolySpatialSceneStateRecordingLoader.Load(recordingPath)`: `Summarize()` to resolve names to
-  `instanceId`, then `FilterBySubtree(id)`, `FilterByFrameRange(a, b)`, `FilterProperties(include: …)`,
-  `WorldTransforms()` / `LocalTransforms()`, `Diff(a, b)`, `ToJson()`; write the NDJSON to
-  `Temp/<name>.ndjson`. The exact template is in the `polyspatial-playtest` skill's
-  `references/commands.md`. The script only reads the recording and writes under `Temp/`.
-- `python3` on the files you wrote.
+- `unity command polyspatial_annotation_list`, `polyspatial_recording_list`, `polyspatial_recording_metadata`.
+- `unity command polyspatial_scene_state --recording R --entity "<name or path suffix>" --start-frame A --end-frame B [--properties p1,p2] [--summarize true]`
+- `unity command polyspatial_scene_changes --recording R --start-frame A --end-frame B [--entity X] [--properties ...] [--group-depth 2]`
+- `unity command polyspatial_entity_timeline --recording R --entity X --property position|worldPosition|rotation|worldRotation|scale --step 1`
+- `unity command polyspatial_scene_export --out Temp/<name>.ndjson ...` — same as scene_state, to a file.
+- `python3` on files you exported or redirected into your scratch directory.
 
 Never read `Assets/`, `Packages/`, `ProjectSettings/`, `.unity`, `.prefab` or `.cs` files, never run
 `grep` over the project, never `editor_play`, `simulate_*`, `capture_game_view` or anything that changes
@@ -33,18 +31,17 @@ the Editor. If the recording cannot answer the question, say exactly which data 
 1. Resolve the reference first; note `entityPath`, `frame`, `frameEnd`, `recordingFrames`. A reply with `scene: true` is a note on the open scene, not on a recording: there is nothing to measure, say so and hand it back.
 2. Decide which entity and property answer the question. A property that is constant on the annotated
    entity usually lives on an ancestor: walk up the `entityPath` one level at a time. Names repeat; when
-   names collide, pick the `instanceId` whose `path` in the summary ends with `Parent/Child`.
-3. Pull the keyframes you need (`FilterProperties` keeps only the property you care about; a value is
-   stored only where it changed, hold the last value across frames when you need per-frame samples)
-   and write anything longer than a screen to a file. Compute on the file:
+   a command reports an ambiguous name, pass a path suffix such as `Parent/Child`.
+3. Pull every frame you need (`--step 1`, or `--properties` to keep only the property you care about)
+   and redirect anything longer than a screen to a file. Compute on the file:
    - rotation: for consecutive quaternions q0,q1 take delta = q1 * inverse(q0), convert to angle-axis,
      accumulate signed angle about the dominant axis; net turns = sum/360, total turns = sum|angle|/360;
      runs of |delta| > 0 are bursts. Report net and total separately.
    - distance: sum |worldPosition(i) - worldPosition(i-1)|.
    - counts: the length of a `[[frame,value],...]` keyframe array minus one.
    - presence: `lifecycle` keyframes.
-4. Convert frames to seconds with the `time` fields of `polyspatial_annotation_list`, or query by
-   seconds with `FilterByTimeRange(s0, s1)`.
+4. Convert frames to seconds with the `time` fields of `polyspatial_annotation_list` or by
+   `polyspatial_scene_changes --start-time/--end-time`.
 
 ## What you return
 
