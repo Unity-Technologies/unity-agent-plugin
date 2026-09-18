@@ -7,23 +7,30 @@ back in the `result` field; several are NDJSON (one JSON object per line) so the
 
 | Command | Flags | Result |
 |---|---|---|
-| `polyspatial_annotation_list` | `--recording all\|latest\|<name>` (default all) | One line per annotation: `reference`, `recording`, `recordingPath`, `frame`, `frameEnd`, `time`, `kind` (`entity`\|`moment`), `text`, `created`, `createdBy`, and for entity annotations `entityId`, `entityName`, `entityPath`, `worldPosition`, `worldBoundsCenter`, `worldBoundsSize`, `hitPoint`; `camera` is the Scene view camera when it was written. |
+| `polyspatial_annotation_list` | `--recording all\|latest\|<name>` (default all) | One line per annotation: `reference`, `recording`, `recordingPath`, `frame`, `frameEnd`, `time`, `timeEnd`, `kind`, `text`, `created`, `createdBy`, and for entity annotations `entityId`, `entityName`, `entityPath`, `worldPosition`, `worldBoundsCenter`, `worldBoundsSize`, `hitPoint`; `camera` is the Scene view camera when it was written. A note left from CoCreate adds `cocreateKind` (`screenshot`, `comment`, `annotate`, `select`, `voice`, `scene`) and `cocreateData` (its JSON: `rect`, `strokes`, `transcript`, …). A scene note (`scene: true`, `scenePath`, `sceneName`) has no recording and no `time`; its `entityId` values are `GlobalObjectId` strings. |
 | `polyspatial_annotation_show` | `--ref <recording>#<id> \| <id> \| <path.json>` (required), `--window 30`, `--include-components true`, `--max-changes 300` | `annotation` (as above), `recordingFrames`, `changeWindow {from,to}`, `state` (entity annotations: NDJSON lines of the subtree at the frame, parsed into an array), `changes` (entity) or `changedEntities` (moment), `changeCount`, `changesTruncated`, `entityResolvedByName`, `entityMissing`. |
 
-`kind` is `entity`, `entities` (a box or lasso selection in the Scene view: `entityIds`, `entityPaths`, `entityCount`; show returns `members`, their `state` and only their `changes`), `span` (`frame`–`frameEnd`) or `moment`.
+`kind` is `entity`, `entities` (several objects: `entityIds`, `entityPaths`, `entityCount`; show returns `members`, their `state` and only their `changes`), `span` (`frame`–`frameEnd`) or `moment`. For a scene note, show returns `annotation` and a `note` only: there is no recorded state to query.
 
 A `changes` entry: `{ entity, component?, property, from, to, firstChangeFrame, lastChangeFrame, keyframes }`.
 A `changedEntities` entry: `{ entity, changedProperties, properties[], firstChangeFrame, lastChangeFrame }`.
 
-## Recording and playback (through `eval`)
+## Recording and playback
 
-No `polyspatial_*` command enters Play mode. Call the public `UnityEditor.PolySpatial.Utilities.RecordingPlaybackScene` API through `unity command eval --code "..."`:
+| Command | Flags | Result |
+|---|---|---|
+| `polyspatial_record_start` | `--shaders false` | Arms a `.qrec` under `Library/PolySpatialRecordings` and enters Play mode: `{ armed, path }`, or `Error:` when already playing or the scene is untitled. |
+| `polyspatial_record_stop` | | Leaves Play mode; the file finalizes on exit: `{ stopping, path }`. Poll `polyspatial_recording_metadata` for it. |
+| `polyspatial_playback` | `--recording latest`, `--frame 1`, `--play false` | Rebuilds the recording on a timeline inside the open scene, parked on the frame, never entering Play mode; the scene's own objects are deactivated until the replay closes. Returns the status below. |
+| `polyspatial_playback_seek` | `--frame` (required), `--play false` | Moves the open replay to a frame, in either direction. Returns the status below. |
+| `polyspatial_playback_status` | | `{ isPlayingBack, isLiveSession, isPaused, playbackEnded, frame, time, frameCount, path }` for the replay or the live recording session. |
+
+The same control is public C# on `UnityEditor.PolySpatial.Utilities.RecordingPlaybackScene`, reached through `unity command eval --code "..."`; closing a replay is only there:
 
 | Call | Result |
 |---|---|
 | `return R.StartRecording();` | The new `.qrec` path, or `Error: ...` (already in Play mode, untitled scene). Enters Play mode. |
 | `return $"{R.IsLiveSession} {R.LiveFrame}";` | `True <frame>` once the recorder runs; `LiveFrame` is the recording frame counter. |
-| `unity command editor_stop` | Leaves Play mode; the file finalizes. Poll `Load(path).TotalFrameCount` through `eval` for it. |
 | `return R.StartPlaybackAt("<path>", <frame>, true);` | Rebuilds `<path>` on a timeline inside the open scene, parked on `<frame>`; `null` on success. Never enters Play mode; the scene's own objects are deactivated until `StopPlayback`. |
 | `R.SeekTo(<frame>, true); return R.CurrentFrame;` | Rebuilds that frame directly, in either direction. |
 | `R.IsPaused = false;` / `R.IsPaused = true;` | Plays in real time / pauses. |
@@ -32,44 +39,22 @@ No `polyspatial_*` command enters Play mode. Call the public `UnityEditor.PolySp
 
 `R` stands for the full `UnityEditor.PolySpatial.Utilities.RecordingPlaybackScene`; `eval` has no `using`, so spell it out.
 
-## Reading a recording (through `eval_file`)
+| Command | Flags | Result |
+|---|---|---|
+| `polyspatial_recording_list` | | One line per `.qrec`: `path`, `name`, `sizeKB`, `lastWriteUtc`. |
+| `polyspatial_recording_metadata` | `--recording` | `{ path, name, version, frameCount, recordingType, commandCount }`. |
 
-Recordings are `Library/PolySpatialRecordings/*.qrec`; `ls -t` finds the newest. Load one into a
-`PolySpatialSceneState` and shape the answer with `SceneStateQuery`, in a `.cs` script run by
-`unity command eval_file --file <script> --timeout 120`. The script's `return` value is the result;
-write anything large to `Temp/<name>.ndjson` and compute on the file. `eval` has no `using`, so the
-types are spelled out: `UnityEditor.PolySpatial.Serialization.SceneState.PolySpatialSceneStateRecordingLoader`
-and `Unity.PolySpatial.Serialization.SceneState.SceneStateQuery` / `OutputMode` (public from
-polyspatial #4964). Loading a long recording takes seconds: one script per recording, several
-questions inside it.
+## Recording queries
 
-```csharp
-var state = UnityEditor.PolySpatial.Serialization.SceneState.PolySpatialSceneStateRecordingLoader.Load("<recordingPath>");
-var summary = state.Query().Summarize().OrderAlphabetically().ToJson();                 // what exists: path, instanceId, lifecycle
-var subtree = state.Query().FilterBySubtree(<instanceId>).FilterByFrameRange(<A>, <B>)   // one entity and its children over a range
-    .FilterProperties(include: new[] { "transform.position" }).WorldTransforms()
-    .IncludeComponents(false).IncludeAssets(false).IncludeInputs(false).ToJson();
-var changes = state.Query().Diff(<A>, <B>)                                                // what differs between two frames
-    .WithOutputMode(Unity.PolySpatial.Serialization.SceneState.OutputMode.PropertyPerLine).ToJson();
-System.IO.File.WriteAllText("Temp/subtree.ndjson", subtree);
-return $"frames={state.TotalFrameCount}\n{summary}";
-```
+| Command | Flags | Result |
+|---|---|---|
+| `polyspatial_scene_state` | `--recording`, `--entity <name or path suffix>`, `--start-frame`, `--end-frame`, `--summarize false`, `--include-components true`, `--transform-digits`, `--properties a,b`, `--exclude-properties c`, `--include-assets false`, `--include-inputs false` | NDJSON: a header line with counts, then one line per entity with `path`, `lifecycle`, `world.position/rotation/scale`, `components[]` and `Component.property` values; a property that varies inside the range becomes `[[frame,value],...]`. `--properties` keeps only the named properties (entity headers stay), which is the cheap way to ask "how many times did Image.color change": count that array. |
+| `polyspatial_scene_export` | `--out <file>` plus every `polyspatial_scene_state` flag | Writes the same NDJSON to a file and returns `{ path, lines, bytes }`. Use it whenever the slice is more than a screen of text, then compute on the file. |
+| `polyspatial_scene_changes` | `--start-frame/--end-frame` or `--start-time/--end-time`, `--recording`, `--entity`, `--include-components true`, `--max-changes 500`, `--group-depth 0`, `--properties`, `--exclude-properties` | `{ recording, from, to, changeCount, changes[] }` or, with `--group-depth`, `changedEntities[]`. Values that differ only by float rounding are dropped. |
+| `polyspatial_entity_timeline` | `--entity` (required), `--recording`, `--property position\|worldPosition\|rotation\|worldRotation\|scale`, `--start-frame`, `--end-frame`, `--step 0` | A header line then `{ frame, x, y, z[, w] }` samples (rotations are quaternions); `--step 0` targets about 200 samples, `--step 1` every frame. Redirect to a file and compute on it. |
 
-| Query | Result |
-|---|---|
-| `state.TotalFrameCount` | Frame count; also confirms a stopped recording has finalized. |
-| `.Summarize().OrderAlphabetically()` | NDJSON, one line per entity: `path`, `instanceId`, `lifecycle`, no values. Resolve names here, then query by `instanceId`. |
-| `.FilterBySubtree(instanceId)` | Only that entity and its descendants. |
-| `.FilterByFrameRange(a, b)` / `.FilterByTimeRange(s0, s1)` | Keyframes inside the range plus the value held at its start; frames are 1-based, times are seconds from the start. |
-| `.FilterProperties(include, exclude)` | Keep only the named properties (`transform.position`, `transform.rotation`, `lifecycle`, `Image.color`, …); entity headers stay. The cheap way to ask "how many times did Image.color change": count that keyframe array. |
-| `.WorldTransforms()` / `.LocalTransforms()` | Composed world values, or values relative to the parent. |
-| `.Diff(a, b)` | Only what differs between two frames; with `WithOutputMode(OutputMode.PropertyPerLine)` one property per line with both values. |
-| `.FilterByDepth(n)`, `.FilterByComponentType("MeshRenderer")`, `.IncludeComponents/IncludeAssets/IncludeInputs(bool)`, `.WithSignificantTransformDigits(n)` | Narrow or widen the output. |
-| `.ToJson()` | NDJSON: a header line, then one line per entity with `path`, `lifecycle`, `world.position/rotation/scale`, `components[]` and `Component.property` values. A value constant over the range is written bare; a changing one as `[[frame,value],...]`. Rotations are quaternions `x, y, z, w`. |
-
-The Muse Editor skills `play-session-recording-inspect`, `-analyze` and `-explain` (polyspatial
-#4963) issue the same queries through RunCommand; their templates carry over by replacing
-`result.Log(x)` with `return x`.
+Entity arguments accept a name, or a hierarchy path suffix (`Parent/Child`) when the name is
+shared; an ambiguous name returns an error listing the candidate paths.
 
 ## Driving the game (com.unity.pipeline)
 

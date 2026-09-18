@@ -30,7 +30,7 @@ the Editor. If the recording cannot answer the question, say exactly which data 
 
 ## How you work
 
-1. Resolve the reference first; note `entityPath`, `frame`, `frameEnd`, `recordingFrames`.
+1. Resolve the reference first; note `entityPath`, `frame`, `frameEnd`, `recordingFrames`. A reply with `scene: true` is a note on the open scene, not on a recording: there is nothing to measure, say so and hand it back.
 2. Decide which entity and property answer the question. A property that is constant on the annotated
    entity usually lives on an ancestor: walk up the `entityPath` one level at a time. Names repeat; when
    names collide, pick the `instanceId` whose `path` in the summary ends with `Parent/Child`.
