@@ -24,6 +24,9 @@ unity projects info /path/to/MyProject --format json
 # Open a project in the editor
 unity open /path/to/MyProject
 
+# Block until the Editor exits and report its real outcome — macOS/Linux only (exit 0 clean, 6 failed)
+unity open /path/to/MyProject --wait
+
 # Open with a specific editor version
 unity open /path/to/MyProject --editor-version 6000.0.47f1
 
@@ -42,6 +45,8 @@ The project argument is matched against the Hub registry first (exact name or pa
 
 **Signed-in Editor, no Hub required.** `unity open` starts a small background identity helper that answers the Editor's account lookup with the session `unity auth login` stored — your account, organization list (so Package Manager entitlements resolve), and the service addresses for your resolved `--cloudEnvironment` — so a Hub-less machine gets a signed-in Editor instead of an anonymous one. It steps aside whenever a real Hub is running or starting, exits on its own a few minutes after the Editor stops using it, and can be disabled with `UNITY_NO_EDITOR_IDENTITY_SERVER`. Signed out, the Editor just starts anonymous, as before.
 
+**`--wait` — a real exit code from an interactive open.** By default `unity open`, `unity projects open` and `unity projects upgrade` return once the hand-off to the Editor completes, watching it only briefly for an instant failure. `--wait` blocks for as long as the Editor runs and exits `0` when it exits cleanly or `6` (`OPEN_EDITOR_EXITED`, or the licensing diagnosis for a 198) when it fails. The Editor runs in its own process group: Ctrl-C is absorbed, the wait always runs to completion, and the Editor is never touched. macOS and Linux only for now — Windows refuses `--wait` with exit `2` rather than falling back to the bounded watch. Without `--wait`, the CLI watches the Editor for only about 150 ms after launch, so an Editor killed by a signal is reported as a failure only when that happens inside the startup window; once the command has returned, nothing further can be reported. `--wait` is what covers the Editor’s whole lifetime, and it reports a signal death as a failure too. `projects create --open` / `projects new --open` do not take `--wait`.
+
 **Reserved flags — do NOT pass these via `--args`.** `-projectPath` is managed by the command (Unity's parser is last-wins, so forwarding it would silently redirect the open to a different project), and `-useHub`/`-hubIPC` are deliberately never passed — they tell the Editor a Unity Hub manages its session, which the CLI is not. Passing any of them fails fast, before launch, with exit code 6:
 
 ```
@@ -55,7 +60,7 @@ All three spellings Unity accepts are rejected (`-useHub`, `--useHub`, `-useHub=
 Create a project. On a TTY, prompts for any missing options (parent directory, editor version, template) and then asks whether to link the project to a Unity Cloud project — that last question defaults to **No**, so pressing Enter creates an unlinked project. In CI, pass `--non-interactive` or pipe stdin to suppress prompts and rely on stored defaults. The first positional argument is the project **name**; `--path` sets the parent directory:
 
 ```bash
-unity projects create MyGame --editor-version 6000.0.47f1 --template com.unity.template.3d
+unity projects create MyGame --editor-version 6000.0.47f1 --template com.unity.template.urp-blank
 
 # Place the project in a specific directory
 unity projects create MyGame --path /path/to/projects --editor-version 6000.0.47f1
@@ -125,7 +130,7 @@ Create a project without any interactive prompts — resolves missing options fr
 unity projects new MyGame
 
 # Override stored defaults with explicit values
-unity projects new MyGame --path /path/to/projects --editor-version 6000.0.47f1 --template com.unity.template.3d
+unity projects new MyGame --path /path/to/projects --editor-version 6000.0.47f1 --template com.unity.template.urp-blank
 
 # Open the project immediately after creation
 unity projects new MyGame --open
@@ -226,6 +231,14 @@ to 50 and caps at 500, and the envelope's `truncated` tells you when there was m
 **Unity Cloud only.** The reviews service resolves a per-organization cloud region, so a
 self-hosted workspace has no reviews API — those commands refuse with
 `VCS_UVCS_REVIEW_SELF_HOSTED` and point at the GUI rather than failing obscurely.
+
+**They need a signed-in session, and the three auth-shaped failures mean different things.**
+`unity auth login` is all you have to do; the short-lived gateway token these commands
+authenticate with is obtained for you. `NOT_SIGNED_IN` and `SESSION_EXPIRED` (both exit 3) mean
+sign in again. `UVCS_TOKEN_UNAVAILABLE` (exit 6) means that token could not be obtained at all —
+a connectivity or service problem, not a credential one, so re-running sign-in will not help.
+`VCS_UVCS_REVIEW_REQUIRE_AUTH` (exit 3) is the reviews service itself refusing a credential the
+CLI did obtain. Do not treat them as one condition: only the first two are worth a login retry.
 
 **`line` is one-based, and may be absent.** The service anchors a comment with a zero-based line in
 a string field whose `-1` means "not anchored to a line". The CLI does that arithmetic once: `line`
@@ -484,6 +497,16 @@ unity projects unlink vcs /path/to/MyProject --unlink-workspace
 
 The `[url]` second operand attaches to a remote that already exists, instead of creating one — the one thing the flag form of `link vcs` cannot do. It is mutually exclusive with `--vcs`, `--git-namespace`, `--git-repo`, `--git-visibility`, `--git-default-branch`, `--git-remote-protocol`, `--git-description`, `--cloud-org`, and `--cloud-project` (all meaningless without a repository to create — the URL's own scheme already says which transport to use). `--git-token[-stdin]`, `--no-initial-commit`, and `--git-lfs` still apply, and the same ambient-auth / Tier A rules as `projects clone [url]` govern whether the push uses a supplied token or the machine's own git auth.
 
+### Assets — inspect a `.unitypackage` without importing it
+
+```bash
+# List a package’s contents: asset path, GUID, payload size, and whether a preview image is bundled
+unity assets inspect ./MyPackage.unitypackage
+unity assets inspect ./MyPackage.unitypackage --format json
+```
+
+Works offline, with no Editor installed and no open project. The archive is streamed rather than read into memory, so a multi-gigabyte package is inspected in constant memory. `--format json` / `tsv` / `ndjson` carry the raw byte size and a boolean preview flag for scripts; the human table shows readable sizes and ends with a summary of entry count and total size. A missing file fails with `ASSET_PACKAGE_NOT_FOUND` (exit 6).
+
 ---
 
 ### Releases — browse Unity versions
@@ -511,6 +534,24 @@ unity releases --limit 10 --skip 20 --format json
 
 ### Templates
 
+**Choosing a core template.** Pick by render pipeline, not just by 2D/3D. Default to the URP
+templates; the Built-in Render Pipeline templates are deprecated from Unity 6.5 and removed in
+6.7, so use them only when the user explicitly asks for Built-in. Verify with `templates list`
+for the target Editor — ids below are as of Unity 6000.3 to 6000.7:
+
+| Brief | Template id | Display name | Pipeline |
+|---|---|---|---|
+| 3D (default) | `com.unity.template.urp-blank` | Universal 3D | URP |
+| 2D (default) | `com.unity.template.universal-2d` | Universal 2D | URP + `com.unity.2d.*` packages (the JSON `renderPipeline` field is blank for this one — match by id) |
+| High-fidelity PC/console 3D | `com.unity.template.hdrp-blank` | High Definition 3D | HDRP |
+| VR / MR / AR | `com.unity.template.vr` / `.mixed-reality` / `.ar-mobile` | VR, Mixed Reality (MR), AR Mobile | URP |
+| Built-in, only on request | `com.unity.template.3d` / `com.unity.template.2d` | 3D / 2D (Built-In Render Pipeline) | Built-in; absent from 6.7+ |
+
+`--editor` here takes a **concrete** version. Unlike `install` and `projects create`, the
+`templates` commands do not resolve the `lts` / `latest` aliases — the value is passed straight
+through and anything that is not a `6000.x.y` fails with `UnityVersion: version argument is not a
+valid unity version`. Resolve the version first (`editors --installed`, `releases`).
+
 ```bash
 # List templates for an editor version (uses default editor if --editor is omitted)
 unity templates list --editor 6000.0.47f1 --format json
@@ -533,7 +574,7 @@ unity templates list --editor 6000.0.47f1 --type custom --format json
 # --custom and --type are mutually exclusive — using both is an error (exit 1)
 
 # Show template details
-unity templates info com.unity.template.3d --editor 6000.0.47f1 --format json
+unity templates info com.unity.template.urp-blank --editor 6000.0.47f1 --format json
 
 # Create a custom template from an existing Unity project
 # --name and --display-name are REQUIRED
