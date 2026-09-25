@@ -83,6 +83,18 @@ do something in your Unity project. For example:
 In Claude Code the skills also appear in the slash menu, so you can pick one
 explicitly instead of describing the task.
 
+For what each skill covers and how to prompt it, see
+[About Unity's plugin](https://docs.unity.com/en-us/ai/unity-plugin/about-unity-plugin),
+or browse the [skills folder](skills/).
+
+## Works best with the Unity CLI
+
+Many skills drive your open Unity Editor directly: they create GameObjects, change import settings, run C# in the Editor, and check the result, instead of hand-editing scene and asset files. They do this through the [Unity CLI](https://docs.unity.com/en-us/unity-cli), Unity's command-line tool, which also installs Editors, creates and opens projects, and runs builds and tests.
+
+You don't have to set it up yourself. When a task needs the CLI, your agent checks whether it's installed and can install it for you, along with the small Unity package the CLI uses to talk to your open Editor. If you use the Unity Hub, you likely have the CLI already: the Hub now installs it automatically.
+
+To install it yourself, or to use it on its own from your terminal, see [Use the Unity CLI](https://docs.unity.com/en-us/unity-cli/use-unity-cli).
+
 ## Works with
 
 Unity 6+.
