@@ -1,0 +1,4 @@
+# Lets the skills publish workflow open PRs that update this plugin's skills/.
+workflows:
+allow-fetch-token:
+    - unity/skills/.github/workflows/publish-to-public.yml@refs/heads/main
