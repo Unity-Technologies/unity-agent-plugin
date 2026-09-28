@@ -52,16 +52,32 @@ unity@unity-agent-plugin  installed, enabled  0.1.6-beta
 
 ### Manual install
 
-If you can't use the marketplace commands, clone the repo and link it into your personal skills directory instead:
+If you can't use the marketplace commands, clone the repo and link each skill into your personal skills directory. Run this from the folder you want the clone in:
 
 ```bash
 git clone https://github.com/Unity-Technologies/unity-agent-plugin.git
-ln -s "$(pwd)/unity-agent-plugin" ~/.claude/skills/unity
+cd unity-agent-plugin
 ```
 
-It loads automatically in every project from your next session onward.
+**Claude Code**
+
+```bash
+mkdir -p ~/.claude/skills
+for d in "$PWD"/skills/*; do ln -sfn "$d" ~/.claude/skills/"$(basename "$d")"; done
+```
+
+**Codex**
+
+```bash
+mkdir -p ~/.agents/skills
+for d in "$PWD"/skills/*; do ln -sfn "$d" ~/.agents/skills/"$(basename "$d")"; done
+```
+
+The skills load in every project from your next session onward. To update them, run `git pull` in the clone. Skills installed this way don't appear under a `unity:` prefix, because they aren't installed as a plugin.
 
 ## Usage
+
+> **Before you start:** the skills have your agent change your project directly. It edits scripts, scenes and assets, and when the Unity CLI is available it runs C# in your open Editor. Not every change is logged or can be undone from the Editor, so keep your project under version control and commit before asking for larger changes.
 
 Once installed, your agent uses the relevant skill automatically when you ask it to
 do something in your Unity project. For example:
