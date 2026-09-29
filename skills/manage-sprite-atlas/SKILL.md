@@ -1,13 +1,13 @@
 ---
 name: manage-sprite-atlas
-description: Manage SpriteAtlas using prebuild pipeline with IPreprocessBuildWithReport (DEFAULT approach). Use it to configure master atlases, variant atlases, texture settings, packing settings, and platform-specific configurations. Use when the user asks about creating sprite atlases, optimizing sprites, configuring atlas settings, adding sprites to atlases, creating variant atlases, implementing automated atlas generation, or runtime sprite atlas access. Always use prebuild approach unless user explicitly requests manual authoring.
+description: Manages SpriteAtlas assets through a prebuild pipeline, covering master and variant atlases, packing settings, and platform overrides. Use when asked to create or optimize sprite atlases.
 ---
 
 # Unity SpriteAtlas V2
 
 Provides *editor-safe* procedural knowledge for scripting atlases in Unity projects. **V2 enforces strict separation between editor authoring and runtime access.**
 
-> ⚠️ **Critical V2 Principle**: `SpriteAtlas` is **runtime-only**. `SpriteAtlasAsset` is **editor-only**. Never mix contexts. Always use V2.
+> ⚠ **Critical V2 Principle**: `SpriteAtlas` is **runtime-only**. `SpriteAtlasAsset` is **editor-only**. Never mix contexts. Always use V2.
 
 ## 🚨 CRITICAL: Required Checks and User Inputs Before Implementation
 
@@ -57,7 +57,7 @@ Search for files containing the identifier: `// [UNITY-SKILL:SPRITEATLAS]`
   - Regenerates scripts at existing paths
   - Preserves file locations
   - Updates to latest version
-  - ⚠️ May overwrite custom modifications
+  - ⚠ May overwrite custom modifications
 
 - **Option B: Create new scripts with different names**
   - Generates alongside existing scripts
@@ -144,7 +144,7 @@ say so rather than assuming the write landed.
 |---------|-----------|---------|---------------|
 | **Editor Authoring** | `SpriteAtlasAsset` | Add/remove sprites/folders; store metadata | ✅ Editor scripts only |
 | **Editor Settings** | `SpriteAtlasImporter` | Configure texture, packing, platform settings | ✅ Editor scripts only |
-| **Editor Packing** | `SpriteAtlasUtility.PackAtlases()` | *Optional* editor preview packing (not for build) | ⚠️ Only for preview; atlases auto-pack at build |
+| **Editor Packing** | `SpriteAtlasUtility.PackAtlases()` | *Optional* editor preview packing (not for build) | ⚠ Only for preview; atlases auto-pack at build |
 | **Runtime** | `SpriteAtlas` | Query packed sprites (read-only) | ✅ Runtime scripts only |
 | **Runtime Loading** | `SpriteAtlasManager` | Dynamic loading callbacks | ✅ Runtime scripts only |
 
@@ -285,7 +285,7 @@ Generate variant atlases for different resolutions.
 
 ## Advanced: Manual Authoring (NOT Default - Use Only When Explicitly Requested)
 
-> ⚠️ **WARNING**: Manual authoring is NOT the default approach. Only use these patterns when the user EXPLICITLY requests manual control or editor preview during development.
+> ⚠ **WARNING**: Manual authoring is NOT the default approach. Only use these patterns when the user EXPLICITLY requests manual control or editor preview during development.
 
 > 🚨 **DEFAULT APPROACH**: Use prebuild generation with `IPreprocessBuildWithReport` instead. See [Quick Start](#quick-start-automated-prebuild-generation-default-approach).
 
