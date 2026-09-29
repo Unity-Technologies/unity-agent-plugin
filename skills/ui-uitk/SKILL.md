@@ -1,6 +1,6 @@
 ---
 name: ui-uitk
-description: Unity UI Toolkit expert for Unity 6.0+. Understands, edits, and generates UXML and USS files with flex-based layouts. Use for requests involving .uxml, .uss, UI Toolkit, UIElements, UIDocument, UI runtime binding, Custom UI Elements, Manipulators or PanelSettings.
+description: Understands, edits, and generates Unity UI Toolkit UXML and USS with flex layouts. Use for requests involving UI Toolkit, UIElements, UIDocument, PanelSettings, custom elements, or UI runtime binding.
 ---
 
 Understand existing Unity UI Toolkit code, make targeted edits, generate new UXML/USS files, Manipulators, and handle UI runtime binding.
@@ -8,13 +8,13 @@ Understand existing Unity UI Toolkit code, make targeted edits, generate new UXM
 ## References
 
 Read these as needed:
-- `references/uss-guide.md` — USS patterns and examples
-- `references/svg-icons.md` — SVG icon generation (only when generating icons)
-- `references/common-issues.md` — Common mistakes to avoid
-- `references/ui-runtime-binding.md` — Patterns and guide to bind data to UI at runtime (only when requested or when bindings are involved)
-- `references/painter2d.md` — Painter2D API for custom visuals: gradients, shapes, arcs, procedural drawing (read this whenever gradients, custom shapes, progress rings, procedural drawing, or any visual beyond what USS can express is needed)
-- `references/pointermanipulator-guide.md` — Patterns and guide to create and use Manipulators (only when requested or when manipulators are involved). This helps with setting up drag and drop features or simple event handling for a Visual Element.
-- `references/custom-elements.md` — Custom UI Element patterns and guide to create reusable components with UXML, USS, and C#. This helps with creating complex UI components for reuse across the project.
+- [references/uss-guide.md](references/uss-guide.md) — USS patterns and examples
+- [references/svg-icons.md](references/svg-icons.md) — SVG icon generation (only when generating icons)
+- [references/common-issues.md](references/common-issues.md) — Common mistakes to avoid
+- [references/ui-runtime-binding.md](references/ui-runtime-binding.md) — Patterns and guide to bind data to UI at runtime (only when requested or when bindings are involved)
+- [references/painter2d.md](references/painter2d.md) — Painter2D API for custom visuals: gradients, shapes, arcs, procedural drawing (read this whenever gradients, custom shapes, progress rings, procedural drawing, or any visual beyond what USS can express is needed)
+- [references/pointermanipulator-guide.md](references/pointermanipulator-guide.md) — Patterns and guide to create and use Manipulators (only when requested or when manipulators are involved). This helps with setting up drag and drop features or simple event handling for a Visual Element.
+- [references/custom-elements.md](references/custom-elements.md) — Custom UI Element patterns and guide to create reusable components with UXML, USS, and C#. This helps with creating complex UI components for reuse across the project.
 
 Paths are relative to this skill's folder — read `references/uss-guide.md` directly.
 
