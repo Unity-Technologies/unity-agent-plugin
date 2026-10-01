@@ -47,7 +47,7 @@ also shows `unity` as installed and enabled.
 
 ```
 PLUGIN                    STATUS              VERSION
-unity@unity-agent-plugin  installed, enabled  0.1.6-beta
+unity@unity-agent-plugin  installed, enabled  0.1.7-beta
 ```
 
 ### Manual install
