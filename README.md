@@ -45,9 +45,6 @@ terminal:
 grok plugin install Unity-Technologies/unity-agent-plugin --trust
 ```
 
-Grok asks for explicit trust before it installs a plugin from a repository. This plugin
-ships skills only, with no hooks and no MCP servers.
-
 ### Verify it worked
 
 Each agent surfaces an installed plugin differently.
