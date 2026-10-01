@@ -3,7 +3,7 @@
 Unity's official game development plugin. Build, monetize, and operate Unity games
 with guidance grounded in Unity's documented practices.
 
-Available for **Claude Code** and **Codex**.
+Available for **Claude Code**, **Codex**, and **Grok**.
 
 ## Install
 
@@ -36,6 +36,18 @@ codex plugin marketplace add Unity-Technologies/unity-agent-plugin
 codex plugin add unity@unity-agent-plugin
 ```
 
+**Grok**
+
+In Grok Build, open `/marketplace`, search for Unity, and press `i`. Or install from a
+terminal:
+
+```bash
+grok plugin install Unity-Technologies/unity-agent-plugin --trust
+```
+
+Grok asks for explicit trust before it installs a plugin from a repository. This plugin
+ships skills only, with no hooks and no MCP servers.
+
 ### Verify it worked
 
 Each agent surfaces an installed plugin differently.
@@ -47,8 +59,13 @@ also shows `unity` as installed and enabled.
 
 ```
 PLUGIN                    STATUS              VERSION
-unity@unity-agent-plugin  installed, enabled  0.1.7-beta
+unity@unity-agent-plugin  installed, enabled  0.1.8-beta
 ```
+
+**Grok**: type `/` and the skills appear in the slash menu. Grok uses the plain skill
+name, and switches to the plugin-qualified form (`/unity:ui-uitk`) when another
+installed skill shares the same name. `grok plugin list` shows `unity`, and
+`grok plugin details unity` lists what it provides.
 
 ### Manual install
 
@@ -96,7 +113,7 @@ do something in your Unity project. For example:
 >
 > "Review my ScriptableRendererFeature for Render Graph problems"
 
-In Claude Code the skills also appear in the slash menu, so you can pick one
+In Claude Code and Grok the skills also appear in the slash menu, so you can pick one
 explicitly instead of describing the task.
 
 For what each skill covers and how to prompt it, see
