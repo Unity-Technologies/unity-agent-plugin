@@ -3,7 +3,7 @@
 Unity's official game development plugin. Build, monetize, and operate Unity games
 with guidance grounded in Unity's documented practices.
 
-Available for **Claude Code**, **Codex**, **Grok**, and **Antigravity**.
+Available for **Claude Code**, **Codex**, **Grok**, **Antigravity**, and **GitHub Copilot CLI**.
 
 ## Install
 
@@ -54,6 +54,19 @@ install it. Or install from a terminal:
 agy plugin install https://github.com/Unity-Technologies/unity-agent-plugin
 ```
 
+**GitHub Copilot CLI**
+
+```bash
+copilot plugin marketplace add Unity-Technologies/unity-agent-plugin
+```
+
+```bash
+copilot plugin install unity@unity-agent-plugin
+```
+
+The plugin commands work without a Copilot plan, but using the skills needs one.
+For Visual Studio, see [Manual install](#manual-install).
+
 ### Verify it worked
 
 Each agent surfaces an installed plugin differently.
@@ -79,6 +92,15 @@ installed skill shares the same name. `grok plugin list` shows `unity`, and
 - unity (enabled, 0.1.8-beta)
 ```
 
+**GitHub Copilot CLI** — run `copilot plugin list`:
+
+```
+Installed plugins:
+  • unity@unity-agent-plugin (v0.1.8-beta)
+```
+
+`copilot skill list` lists the Unity skills under "Plugin skills".
+
 ### Manual install
 
 If you can't use the marketplace commands, clone the repo and link each skill into your personal skills directory. Run this from the folder you want the clone in:
@@ -101,6 +123,20 @@ for d in "$PWD"/skills/*; do ln -sfn "$d" ~/.claude/skills/"$(basename "$d")"; d
 mkdir -p ~/.agents/skills
 for d in "$PWD"/skills/*; do ln -sfn "$d" ~/.agents/skills/"$(basename "$d")"; done
 ```
+
+**GitHub Copilot in Visual Studio and VS Code**
+
+Visual Studio 2026 (version 18.5 or later) doesn't install plugins, but its Copilot
+agent mode reads skills from `~/.copilot/skills`:
+
+```bash
+mkdir -p ~/.copilot/skills
+for d in "$PWD"/skills/*; do ln -sfn "$d" ~/.copilot/skills/"$(basename "$d")"; done
+```
+
+Copilot also reads `~/.claude/skills` and `~/.agents/skills`, so skip this if you
+already linked the skills for Claude Code or Codex. On Windows, copy each skill folder
+into `%USERPROFILE%\.copilot\skills` instead.
 
 The skills load in every project from your next session onward. To update them, run `git pull` in the clone. Skills installed this way don't appear under a `unity:` prefix, because they aren't installed as a plugin.
 
