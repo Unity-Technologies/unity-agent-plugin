@@ -4,12 +4,14 @@ on:
   pull_request:
     paths:
       - 'skills/**'
+      - 'README.md'
       - 'scripts/check-skill-frontmatter.mjs'
       - '.github/workflows/validate-skills.yml'
   push:
     branches: [main]
     paths:
       - 'skills/**'
+      - 'README.md'
 
 jobs:
   frontmatter:
