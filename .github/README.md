@@ -78,7 +78,7 @@ also shows `unity` as installed and enabled.
 
 ```
 PLUGIN                    STATUS              VERSION
-unity@unity-agent-plugin  installed, enabled  0.1.8-beta
+unity@unity-agent-plugin  installed, enabled  0.1.9-beta
 ```
 
 **Grok**: type `/` and the skills appear in the slash menu. Grok uses the plain skill
@@ -89,14 +89,14 @@ installed skill shares the same name. `grok plugin list` shows `unity`, and
 **Antigravity** — run `agy plugin list`:
 
 ```
-- unity (enabled, 0.1.8-beta)
+- unity (enabled, 0.1.9-beta)
 ```
 
 **GitHub Copilot CLI** — run `copilot plugin list`:
 
 ```
 Installed plugins:
-  • unity@unity-agent-plugin (v0.1.8-beta)
+  • unity@unity-agent-plugin (v0.1.9-beta)
 ```
 
 `copilot skill list` lists the Unity skills under "Plugin skills".

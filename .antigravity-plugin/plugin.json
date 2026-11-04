@@ -1,7 +1,7 @@
 {
   "name": "unity",
   "displayName": "Unity",
-  "version": "0.1.8-beta",
+  "version": "0.1.9-beta",
   "description": "Unity's official plugin for Antigravity, with curated skills for game development, monetization, and performance optimization.",
   "logo": "assets/unity-tile.svg",
   "suggestedPrompts": [
