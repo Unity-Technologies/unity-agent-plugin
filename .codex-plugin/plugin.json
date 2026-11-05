@@ -39,6 +39,7 @@
     "websiteURL": "https://unity.com",
     "privacyPolicyURL": "https://unity.com/legal/privacy-policy",
     "termsOfServiceURL": "https://unity.com/legal/terms-of-service",
+    "supportURL": "https://support.unity.com",
     "logo": "./assets/unity.svg",
     "composerIcon": "./assets/unity-small.svg",
     "brandColor": "#000000",
