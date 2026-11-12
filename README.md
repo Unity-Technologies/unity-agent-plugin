@@ -4,8 +4,8 @@ Unity's official plugin for coding agents, with curated skills for game developm
 
 The skills give your agent Unity's documented practices for everyday work: starting a project, managing packages,
 building UI with UI Toolkit, uGUI or IMGUI, 2D sprites and tilemaps, physics, audio, localization, URP rendering and
-post-processing, Shader Graph, multiplayer services, Vivox voice chat, in-app purchases and LevelPlay ads. The agent loads
-a skill only when your request needs it.
+post-processing, Shader Graph, multiplayer services, Vivox voice chat, in-app purchases and LevelPlay ads. The plugin
+installs one skill, `using-unity`, which lists them all; the agent reads only the skill your request needs.
 
 Install steps and usage are in the
 [full README](https://github.com/Unity-Technologies/unity-agent-plugin#readme).
