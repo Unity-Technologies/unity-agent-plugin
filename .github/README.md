@@ -71,7 +71,7 @@ For Visual Studio, see [Manual install](#manual-install).
 
 Each agent surfaces an installed plugin differently.
 
-**Claude Code** — type `/unity:` and the skills appear in the command list. `/plugin`
+**Claude Code** — type `/unity:` and `/unity:using-unity` appears in the command list. `/plugin`
 also shows `unity` as installed and enabled.
 
 **Codex** — run `codex plugin list`:
@@ -81,8 +81,8 @@ PLUGIN                    STATUS              VERSION
 unity@unity-agent-plugin  installed, enabled  0.1.9-beta
 ```
 
-**Grok**: type `/` and the skills appear in the slash menu. Grok uses the plain skill
-name, and switches to the plugin-qualified form (`/unity:ui-uitk`) when another
+**Grok**: type `/` and `using-unity` appears in the slash menu. Grok uses the plain skill
+name, and switches to the plugin-qualified form (`/unity:using-unity`) when another
 installed skill shares the same name. `grok plugin list` shows `unity`, and
 `grok plugin details unity` lists what it provides.
 
@@ -99,11 +99,11 @@ Installed plugins:
   • unity@unity-agent-plugin (v0.1.9-beta)
 ```
 
-`copilot skill list` lists the Unity skills under "Plugin skills".
+`copilot skill list` lists `using-unity` under "Plugin skills".
 
 ### Manual install
 
-If you can't use the marketplace commands, clone the repo and link each skill into your personal skills directory. Run this from the folder you want the clone in:
+If you can't use the marketplace commands, clone the repo and link its skill into your personal skills directory. Run this from the folder you want the clone in:
 
 ```bash
 git clone https://github.com/Unity-Technologies/unity-agent-plugin.git
@@ -135,8 +135,8 @@ for d in "$PWD"/skills/*; do ln -sfn "$d" ~/.copilot/skills/"$(basename "$d")"; 
 ```
 
 Copilot also reads `~/.claude/skills` and `~/.agents/skills`, so skip this if you
-already linked the skills for Claude Code or Codex. On Windows, copy each skill folder
-into `%USERPROFILE%\.copilot\skills` instead.
+already linked the skill for Claude Code or Codex. On Windows, copy the `skills/using-unity`
+folder into `%USERPROFILE%\.copilot\skills` instead.
 
 The skills load in every project from your next session onward. To update them, run `git pull` in the clone. Skills installed this way don't appear under a `unity:` prefix, because they aren't installed as a plugin.
 
@@ -161,12 +161,19 @@ do something in your Unity project. For example:
 >
 > "Review my ScriptableRendererFeature for Render Graph problems"
 
-In Claude Code, Grok and Antigravity the skills also appear in the slash menu, so you can pick one
-explicitly instead of describing the task.
+The plugin installs one skill, `using-unity`, which lists every Unity skill with what it's for.
+Your agent reads that list, picks the skill that fits your request, and follows it. In the slash
+menu of Claude Code, Grok and Antigravity it appears as `/unity:using-unity`; the individual
+skills don't have their own slash commands.
+
+To pick individual skills from the slash menu instead, install them one by one from
+[Unity-Technologies/skills](https://github.com/Unity-Technologies/skills) with
+`npx skills add Unity-Technologies/skills`. If you install both, your agent can reach each
+skill twice.
 
 For what each skill covers and how to prompt it, see
 [About Unity's plugin](https://docs.unity.com/en-us/ai/unity-plugin/about-unity-plugin),
-or browse the [skills folder](../skills/).
+or browse the [skills](../skills/using-unity/references/).
 
 ## Works best with the Unity CLI
 
