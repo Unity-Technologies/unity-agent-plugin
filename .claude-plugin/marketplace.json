@@ -10,7 +10,28 @@
       "name": "unity",
       "source": "./",
       "description": "Unity's official game development plugin. Build, monetize, and operate Unity games with guidance grounded in Unity's documented practices.",
-      "category": "Developer Tools"
+      "category": "Developer Tools",
+      "author": {
+        "name": "Unity Technologies",
+        "url": "https://unity.com"
+      },
+      "homepage": "https://unity.com",
+      "repository": "https://github.com/Unity-Technologies/unity-agent-plugin",
+      "license": "LicenseRef-Unity-Companion-License",
+      "keywords": [
+        "unity",
+        "gamedev",
+        "game-development",
+        "ui-toolkit",
+        "ugui",
+        "2d",
+        "tilemap",
+        "in-app-purchases",
+        "monetization",
+        "localization",
+        "multiplayer",
+        "shader-graph"
+      ]
     }
   ]
 }
