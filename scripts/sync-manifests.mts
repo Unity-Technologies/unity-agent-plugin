@@ -55,6 +55,10 @@ const targets: { file: string; set: (manifest: JsonObject) => void }[] = [
     set: (m) => {
       const entry = pluginEntry(m as Marketplace);
       delete entry.version;
+      // Display fields: the entry's value is what users see in /plugin before install.
+      for (const key of ['author', 'homepage', 'repository', 'license', 'keywords'] as const) {
+        setKey(entry, key, structuredClone(meta[key]));
+      }
       entry.category = meta.category;
     },
   },
