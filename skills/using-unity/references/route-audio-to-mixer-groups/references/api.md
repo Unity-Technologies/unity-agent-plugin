@@ -1,3 +1,11 @@
+## Contents
+
+- What this skill does and does not automate
+- Inventory the project's mixers and their groups
+- Read what the scene's Audio Sources are currently routed to
+- Assign groups to Audio Sources
+- Asking the user to add a group
+
 ## What this skill does and does not automate
 
 Every `AudioMixer` in the Editor is really an `AudioMixerController`, and every `AudioMixerGroup` is
@@ -27,7 +35,7 @@ to add any missing groups (two clicks in a window they already have open), and t
 routing itself. The tedious part — walking dozens of Audio Sources and classifying them — is the
 part that was worth automating anyway.
 
-All snippets below are written for `unity command script eval --caller plugin --skill audio-setup-mixers --code '<snippet>'`: fully qualified, no
+All snippets below are written for `unity command script eval --caller plugin --skill route-audio-to-mixer-groups --code '<snippet>'`: fully qualified, no
 `using` directives, returning their result rather than logging it.
 
 ## Inventory the project's mixers and their groups
@@ -69,7 +77,7 @@ foreach (var source in sources)
 {
     var group = source.outputAudioMixerGroup;
     rows.Add($"{source.gameObject.name}: clip={(source.clip != null ? source.clip.name : "<none>")}, "
-           + $"group={(group != null ? group.name : "<none — routes to Master>")}");
+           + $"group={(group != null ? group.name : "<none — bypasses the mixer>")}");
 }
 return rows.Count == 0 ? "no Audio Sources in the open scene" : string.Join("\n", rows);
 ```
