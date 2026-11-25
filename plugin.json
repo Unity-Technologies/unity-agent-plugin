@@ -1,0 +1,27 @@
+{
+  "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
+  "name": "unity",
+  "version": "0.1.10-beta",
+  "description": "Unity's official plugin for coding agents, with curated skills for game development, monetization, and performance optimization.",
+  "author": {
+    "name": "Unity Technologies",
+    "url": "https://unity.com"
+  },
+  "homepage": "https://unity.com",
+  "repository": "https://github.com/Unity-Technologies/unity-agent-plugin",
+  "license": "LicenseRef-Unity-Companion-License",
+  "keywords": [
+    "unity",
+    "gamedev",
+    "game-development",
+    "ui-toolkit",
+    "ugui",
+    "2d",
+    "tilemap",
+    "in-app-purchases",
+    "monetization",
+    "localization",
+    "multiplayer",
+    "shader-graph"
+  ]
+}
