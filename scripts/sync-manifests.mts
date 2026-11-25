@@ -8,7 +8,11 @@
 // To release, change "version" in plugin-metadata.json and run the script without --check.
 // Platform-only fields (descriptions, the Codex interface block, Antigravity prompts) stay in
 // each manifest and are not touched.
-import { readFileSync, writeFileSync } from 'node:fs';
+//
+// It also writes the session-start nudge ("nudge" in plugin-metadata.json) into the three files
+// that deliver it, so they always carry the same sentence. See `nudgeFiles` below.
+import { existsSync, mkdirSync, readFileSync, writeFileSync } from 'node:fs';
+import { dirname } from 'node:path';
 
 type Json = string | number | boolean | null | Json[] | { [key: string]: Json };
 type JsonObject = { [key: string]: Json };
@@ -21,6 +25,7 @@ interface Metadata {
   license: string;
   category: string;
   keywords: string[];
+  nudge: string;
 }
 
 interface Marketplace extends JsonObject {
@@ -34,6 +39,14 @@ const shared = ['version', 'author', 'homepage', 'repository', 'license', 'keywo
 // Each target names a manifest and where each shared key lives in it.
 const targets: { file: string; set: (manifest: JsonObject) => void }[] = [
   { file: '.claude-plugin/plugin.json', set: (m) => assign(m, shared) },
+  {
+    // The Agent Plugins manifest at the plugin root. Copilot CLI reads com.github.copilot/ only
+    // when it exists, Grok reads it before .claude-plugin/plugin.json, and OpenAI's plugin
+    // directory takes the package's identity from it. It has no extensions.com.openai, so
+    // Codex and the directory still read their settings from .codex-plugin/plugin.json.
+    file: 'plugin.json',
+    set: (m) => assign(m, shared),
+  },
   {
     file: '.codex-plugin/plugin.json',
     set: (m) => {
@@ -105,6 +118,63 @@ for (const { file, set } of targets) {
   if (after === before) continue;
   if (check) drifted.push(file);
   else writeFileSync(file, after);
+}
+
+// The session-start nudge: one sentence telling the agent to open using-unity first, delivered
+// in each client's own form.
+//   hooks/hooks.json                    Claude Code: a SessionStart hook prints it as additionalContext.
+//                                       The matcher leaves out resume, where the saved text is replayed.
+//   com.github.copilot/rules/unity.mdc  Copilot CLI: an always-on plugin rule.
+//   rules/AGENTS.md                     Antigravity: an always-on plugin rule.
+// Codex and Grok get none. A Codex plugin hook needs the user's approval again after every
+// plugin update, so .codex-plugin/plugin.json sets "hooks": {} to keep Codex from picking up
+// hooks/hooks.json. Grok runs hooks/hooks.json and ignores what a SessionStart hook prints.
+const nudgeFiles: { file: string; content: string }[] = [
+  {
+    file: 'hooks/hooks.json',
+    content: `${JSON.stringify(
+      {
+        hooks: {
+          SessionStart: [
+            { matcher: 'startup|clear|compact', hooks: [{ type: 'command', command: nudgeCommand(meta.nudge) }] },
+          ],
+        },
+      },
+      null,
+      2,
+    )}\n`,
+  },
+  {
+    // Copilot CLI lists the rule only with a description and alwaysApply: true, in a .mdc file.
+    file: 'com.github.copilot/rules/unity.mdc',
+    content: `---\ndescription: Unity skills\nalwaysApply: true\n---\n${meta.nudge}\n`,
+  },
+  { file: 'rules/AGENTS.md', content: `${meta.nudge}\n` },
+];
+
+// The hook command runs in sh, Git Bash or PowerShell, whichever the client picks on the
+// user's machine, with no program or file it could depend on. A single-quoted `echo` is the
+// one form all of them print unchanged. An apostrophe would end the quoting, so it is written
+// as the JSON escape \u0027, which the client decodes.
+function nudgeCommand(text: string): string {
+  if (/[\\"\r\n]/.test(text)) {
+    throw new Error(
+      '"nudge" in scripts/plugin-metadata.json has a backslash, a double quote or a line break. ' +
+        'Shells disagree on how `echo` prints those, so the hook would break in some of them. Reword it.',
+    );
+  }
+  const output = JSON.stringify({ hookSpecificOutput: { hookEventName: 'SessionStart', additionalContext: text } });
+  return `echo '${output.replaceAll("'", '\\u0027')}'`;
+}
+
+for (const { file, content } of nudgeFiles) {
+  const before = existsSync(file) ? readFileSync(file, 'utf8').replace(/\r\n/g, '\n') : null;
+  if (before === content) continue;
+  if (check) drifted.push(file);
+  else {
+    mkdirSync(dirname(file), { recursive: true });
+    writeFileSync(file, content);
+  }
 }
 
 // The sample `codex plugin list`, `agy plugin list` and `copilot plugin list` output in the
