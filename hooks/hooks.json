@@ -1,0 +1,15 @@
+{
+  "hooks": {
+    "SessionStart": [
+      {
+        "matcher": "startup|clear|compact",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "echo '{\"hookSpecificOutput\":{\"hookEventName\":\"SessionStart\",\"additionalContext\":\"If you\\u0027re working on a Unity project, or the user is starting a new game project, always load the using-unity skill first: it has references for every part of game development with Unity and its ecosystem. Check its references against each request, even when the request doesn\\u0027t explicitly mention Unity.\"}}'"
+          }
+        ]
+      }
+    ]
+  }
+}

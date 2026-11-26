@@ -4,11 +4,26 @@
 //   node scripts/build-codex-zip.mts            writes dist/unity-codex-<version>.zip
 //
 // Run it on a clean checkout of merged main, after the version bump. The zip holds one folder,
-// `unity`, with the skills (no evals/ or tests/), both manifests, the README, the license and
-// the logos the manifests reference. It refuses to build if the manifests disagree on
-// the version or drift from scripts/plugin-metadata.json.
+// `unity`, with the skills (no evals/ or tests/), the root plugin.json, the Codex manifest, the
+// README, the license and the logos the Codex manifest references. It refuses to build if the
+// manifests disagree on the name or version, or drift from scripts/plugin-metadata.json.
+//
+// The directory takes the package's identity (name, version, description, author) from the root
+// plugin.json and everything else from .codex-plugin/plugin.json, because the root manifest has
+// no extensions.com.openai. Files for other clients stay out: .claude-plugin/, hooks/, rules/
+// and com.github.copilot/.
 import { execFileSync } from 'node:child_process';
-import { cpSync, existsSync, mkdirSync, mkdtempSync, readdirSync, readFileSync, rmSync, statSync } from 'node:fs';
+import {
+  cpSync,
+  existsSync,
+  mkdirSync,
+  mkdtempSync,
+  readdirSync,
+  readFileSync,
+  rmSync,
+  statSync,
+  writeFileSync,
+} from 'node:fs';
 import { tmpdir } from 'node:os';
 import { basename, join, resolve } from 'node:path';
 
@@ -22,23 +37,25 @@ execFileSync(process.execPath, [join(root, 'scripts/sync-manifests.mts'), '--che
   cwd: root,
   stdio: 'inherit',
 });
-const manifests = ['.codex-plugin/plugin.json', '.claude-plugin/plugin.json'];
+const manifests = ['plugin.json', '.codex-plugin/plugin.json'];
+const names = new Set<string>();
 for (const file of manifests) {
-  const { version } = JSON.parse(readFileSync(join(root, file), 'utf8')) as { version: string };
+  const { name, version } = JSON.parse(readFileSync(join(root, file), 'utf8')) as { name: string; version: string };
   if (version !== meta.version) fail(`${file} is at ${version}, expected ${meta.version}`);
+  names.add(name);
 }
+if (names.size !== 1) fail(`${manifests.join(' and ')} disagree on the name: ${[...names].join(', ')}`);
 
 // 2. Stage the package as <tmp>/unity.
 const excluded = new Set(['evals', 'tests', '.DS_Store', 'Thumbs.db']);
 const contents = [
   'skills',
+  'plugin.json',
   '.codex-plugin',
-  '.claude-plugin',
   'README.md',
   'LICENSE.md',
   'assets/unity.svg',
   'assets/unity-small.svg',
-  'assets/unity-tile.svg', // the icon .claude-plugin/plugin.json points to
 ];
 const stage = mkdtempSync(join(tmpdir(), 'unity-codex-'));
 const pkg = join(stage, 'unity');
@@ -51,6 +68,17 @@ try {
       filter: (src) => !excluded.has(basename(src)),
     });
   }
+
+  // The Codex manifest sets "hooks": {} so that a git install never picks up hooks/hooks.json,
+  // which is Claude Code's. The zip has no hooks/ folder, so the key has nothing to switch off
+  // here, and the plugin directory takes no plugins with lifecycle hooks. Leave it out, so the
+  // uploaded manifest declares none.
+  const codexManifest = join(pkg, '.codex-plugin/plugin.json');
+  const { hooks, ...packed } = JSON.parse(readFileSync(codexManifest, 'utf8')) as Record<string, unknown>;
+  if (hooks !== undefined && JSON.stringify(hooks) !== '{}') {
+    fail('.codex-plugin/plugin.json declares hooks; the plugin directory takes no plugins with lifecycle hooks');
+  }
+  writeFileSync(codexManifest, `${JSON.stringify(packed, null, 2)}\n`);
 
   // 3. Check what was staged before zipping it.
   const skills = readdirSync(join(pkg, 'skills')).filter((d) =>
