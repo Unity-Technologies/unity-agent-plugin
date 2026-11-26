@@ -175,6 +175,23 @@ For what each skill covers and how to prompt it, see
 [About Unity's plugin](https://docs.unity.com/en-us/ai/unity-plugin/about-unity-plugin),
 or browse the [skills](../skills/using-unity/references/).
 
+## What the plugin adds to a session
+
+Besides the skill, the plugin adds one sentence at the start of each session. It tells your agent
+to load `using-unity` first when you're working on a Unity project or starting a new game project,
+so a request that doesn't mention Unity still reaches the right skill. The sentence is added in
+every folder, not only in Unity projects.
+
+How it arrives depends on the agent:
+
+- **Claude Code**: a `SessionStart` hook in `hooks/hooks.json`. It runs one `echo` command that
+  prints the sentence, and nothing else.
+- **GitHub Copilot CLI**: a plugin rule, `com.github.copilot/rules/unity.mdc`.
+  `copilot instruction list` shows it under "Plugin instructions".
+- **Antigravity**: a plugin rule, `rules/AGENTS.md`. `agy plugin list` counts it in the plugin's
+  components.
+- **Codex** and **Grok**: nothing is added. They find `using-unity` from the skill list.
+
 ## Works best with the Unity CLI
 
 Many skills drive your open Unity Editor directly: they create GameObjects, change import settings, run C# in the Editor, and check the result, instead of hand-editing scene and asset files. They do this through the [Unity CLI](https://docs.unity.com/en-us/unity-cli), Unity's command-line tool, which also installs Editors, creates and opens projects, and runs builds and tests.

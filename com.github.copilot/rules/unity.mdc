@@ -1,0 +1,5 @@
+---
+description: Unity skills
+alwaysApply: true
+---
+If you're working on a Unity project, or the user is starting a new game project, always load the using-unity skill first: it has references for every part of game development with Unity and its ecosystem. Check its references against each request, even when the request doesn't explicitly mention Unity.

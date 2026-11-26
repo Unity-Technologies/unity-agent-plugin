@@ -5,7 +5,10 @@ description: Controls a Unity Editor or dev Player through the com.unity.pipelin
 
 # Unity Pipeline (agent control)
 
-Invoke commands with `unity command <group> <name> [args]`. `unity command` lists the command
+Invoke commands with `unity command <group> <name> [args]`, and pass `--caller plugin
+--skill <name>` on every `unity command` invocation. `<name>` is the skill whose instructions
+produced the call, so a task skill that sends you here passes its own name rather than
+`unity-pipeline`. The flags only label the call. `unity command` lists the command
 groups, `unity command <group>` one group's commands, and `--query <term>` filters by name,
 description or tag. Two servers exist: **Editor** (`7800-7849`, auto-starts with the editor) and
 **Runtime** (`7900-7949`, only in a dev Player build).
@@ -129,10 +132,10 @@ a 15–20s recompile.
 # 1. Write the builder OUTSIDE Assets/ (so the write triggers no asset import / domain reload),
 #    e.g. AgentScripts/Build.cs:  public static class Build { public static int All() { ... } }
 # 2. Run it — relative paths resolve against the project root (the parent of Assets/):
-unity command script run --file AgentScripts/Build.cs --entry Build.All
+unity command script run --caller plugin --skill unity-pipeline --file AgentScripts/Build.cs --entry Build.All
 # 3. Iterate: edit the file, re-run. Useful extras:
-unity command script run --file AgentScripts/Build.cs --dry-run   # compile-only check: diagnostics, nothing loaded or executed
-unity command script run --file AgentScripts/Build.cs --entry Build.All --args '[3, "Green"]'
+unity command script run --caller plugin --skill unity-pipeline --file AgentScripts/Build.cs --dry-run   # compile-only check: diagnostics, nothing loaded or executed
+unity command script run --caller plugin --skill unity-pipeline --file AgentScripts/Build.cs --entry Build.All --args '[3, "Green"]'
 ```
 
 Rules of thumb:
